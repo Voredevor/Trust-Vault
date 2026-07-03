@@ -1,0 +1,194 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPPORT
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  DISABLED
+}
+
+enum DeviceStatus {
+  PENDING
+  TRUSTED
+  REVOKED
+}
+
+enum BeneficiaryType {
+  BANK_ACCOUNT
+  WALLET
+}
+
+enum BeneficiaryStatus {
+  PENDING
+  TRUSTED
+  REVOKED
+}
+
+enum VirtualAccountStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+}
+
+enum TransactionDirection {
+  CREDIT
+  DEBIT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REVERSED
+}
+
+enum AuditActorType {
+  USER
+  SYSTEM
+  ADMIN
+}
+
+enum AuditSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique
+  phoneNumber  String?       @unique
+  firstName    String
+  lastName     String
+  passwordHash String
+  role         UserRole      @default(USER)
+  status       UserStatus    @default(PENDING)
+  devices      Device[]
+  beneficiaries Beneficiary[]
+  virtualAccounts VirtualAccount[]
+  transactions  Transaction[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status])
+}
+
+model Device {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @db.Uuid
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  fingerprint String       @unique
+  status      DeviceStatus @default(PENDING)
+  trustedAt   DateTime?
+  lastSeenAt  DateTime?
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+model Beneficiary {
+  id                 String            @id @default(uuid()) @db.Uuid
+  userId             String            @db.Uuid
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type               BeneficiaryType    @default(BANK_ACCOUNT)
+  status             BeneficiaryStatus  @default(PENDING)
+  displayName        String
+  bankName           String?
+  bankCode           String?
+  accountName        String?
+  accountNumber      String?
+  externalReference  String?           @unique
+  isTrusted          Boolean           @default(false)
+  metadata           Json?
+  transactions       Transaction[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, isTrusted])
+}
+
+model VirtualAccount {
+  id                String              @id @default(uuid()) @db.Uuid
+  userId            String?             @db.Uuid
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  label             String
+  accountName       String
+  accountNumber     String?             @unique
+  bankCode          String?
+  providerReference String?             @unique
+  status            VirtualAccountStatus @default(ACTIVE)
+  metadata          Json?
+  transactions      Transaction[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([userId, status])
+}
+
+model Transaction {
+  id                String              @id @default(uuid()) @db.Uuid
+  userId            String              @db.Uuid
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  virtualAccountId  String?             @db.Uuid
+  virtualAccount    VirtualAccount?     @relation(fields: [virtualAccountId], references: [id], onDelete: SetNull)
+  beneficiaryId     String?             @db.Uuid
+  beneficiary       Beneficiary?        @relation(fields: [beneficiaryId], references: [id], onDelete: SetNull)
+  reference         String              @unique
+  providerReference String?             @unique
+  direction         TransactionDirection
+  status            TransactionStatus   @default(PENDING)
+  amount            Decimal             @db.Decimal(18, 2)
+  currency          String              @default("NGN")
+  narration         String?
+  metadata          Json?
+  occurredAt        DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([virtualAccountId, createdAt])
+  @@index([status, direction])
+}
+
+model AuditLog {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String?        @db.Uuid
+  user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actorType   AuditActorType  @default(SYSTEM)
+  action      String
+  resourceType String
+  resourceId  String?
+  severity    AuditSeverity  @default(LOW)
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([resourceType, resourceId])
+  @@index([severity])
+}
