@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
-import { DevicesService } from './devices.service';
-import { DevicesController } from './devices.controller';
+import { DevicesService } from './devices.service.js';
+import { DevicesController } from './devices.controller.js';
+import { PrismaModule } from '../prisma/prisma.module.js';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [DevicesController],
   providers: [DevicesService],
 })

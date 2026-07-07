@@ -1,34 +1,31 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { WebhooksService } from './webhooks.service';
-import { CreateWebhookDto } from './dto/create-webhook.dto';
-import { UpdateWebhookDto } from './dto/update-webhook.dto';
+import { Controller, Get, Headers, Param, Post, Req } from '@nestjs/common';
+import type { IncomingHttpHeaders } from 'http';
+import type { Request } from 'express';
+import { WebhooksService } from './webhooks.service.js';
+
+interface RawBodyRequest extends Request {
+  rawBody?: Buffer;
+}
 
 @Controller('webhooks')
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 
-  @Post()
-  create(@Body() createWebhookDto: CreateWebhookDto) {
-    return this.webhooksService.create(createWebhookDto);
+  @Post('nomba')
+  ingestNombaWebhook(
+    @Headers() headers: IncomingHttpHeaders,
+    @Req() request: RawBodyRequest,
+  ) {
+    return this.webhooksService.ingestNombaWebhook(headers, request.body, request.rawBody);
   }
 
-  @Get()
+  @Get('events')
   findAll() {
     return this.webhooksService.findAll();
   }
 
-  @Get(':id')
+  @Get('events/:id')
   findOne(@Param('id') id: string) {
-    return this.webhooksService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateWebhookDto: UpdateWebhookDto) {
-    return this.webhooksService.update(+id, updateWebhookDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.webhooksService.remove(+id);
+    return this.webhooksService.findOne(id);
   }
 }

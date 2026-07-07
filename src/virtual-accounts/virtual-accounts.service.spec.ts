@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NombaService } from '../nomba/nomba.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { VirtualAccountsService } from './virtual-accounts.service';
+import { NombaService } from '../nomba/nomba.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { VirtualAccountsService } from './virtual-accounts.service.js';
 
 jest.mock('../generated/prisma/client', () => {
   class PrismaClientMock {
@@ -17,7 +17,7 @@ jest.mock('../generated/prisma/client', () => {
 describe('VirtualAccountsService', () => {
   let service: VirtualAccountsService;
   let nombaService: { createSubAccountVirtualAccount: jest.Mock };
-  let prismaService: { virtualAccount: { create: jest.Mock } };
+  let prismaService: { virtualAccount: Record<string, jest.Mock> };
 
   beforeEach(async () => {
     nombaService = {
@@ -29,6 +29,8 @@ describe('VirtualAccountsService', () => {
         create: jest.fn(),
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
       },
     };
 
@@ -75,6 +77,7 @@ describe('VirtualAccountsService', () => {
     });
 
     const result = await service.create({
+      userId: 'user-id',
       accountRef: 'account-ref',
       accountName: 'TrustVaultPhaseFour',
       currency: 'NGN',
@@ -88,7 +91,7 @@ describe('VirtualAccountsService', () => {
     });
     expect(prismaService.virtualAccount.create).toHaveBeenCalledWith({
       data: {
-        userId: null,
+        userId: 'user-id',
         label: 'TrustVaultPhaseFour',
         accountName: 'TrustVaultPhaseFour',
         accountNumber: '1234567890',
@@ -121,6 +124,11 @@ describe('VirtualAccountsService', () => {
       orderBy: {
         createdAt: 'desc',
       },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
     });
   });
 
@@ -135,6 +143,15 @@ describe('VirtualAccountsService', () => {
     expect(prismaService.virtualAccount.findUnique).toHaveBeenCalledWith({
       where: {
         id: 'virtual-account-id',
+      },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        transactions: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
   });

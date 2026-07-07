@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { NombaService } from './nomba.service';
+import { NombaService } from './nomba.service.js';
 
 interface NombaAccountBalanceResponse {
 	code: string;

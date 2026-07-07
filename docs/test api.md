@@ -207,6 +207,58 @@ URL:
 
 `{{baseUrl}}/virtual-accounts/nomba/{{virtualAccountIdentifier}}`
 
+## 8. TrustVault Nomba Webhook Receiver
+
+Method: `POST`
+
+URL:
+
+`{{baseUrl}}/webhooks/nomba`
+
+Headers:
+
+- `Content-Type: application/json`
+- `x-nomba-signature: {{nombaWebhookSignature}}`
+- `x-nomba-event: payment.received`
+- `x-nomba-event-id: evt_123`
+
+Body:
+
+```json
+{
+  "event": "payment.received",
+  "accountRef": "{{virtualAccountRef}}",
+  "amount": "1000",
+  "currency": "NGN",
+  "reference": "txn_123"
+}
+```
+
+Notes:
+
+- Set `NOMBA_WEBHOOK_SECRET` in your `.env` before testing this endpoint.
+- The API stores verified webhook payloads in Prisma under `WebhookEvent`.
+- If the payload matches a known virtual account, TrustVault also writes a credit `Transaction` and a `SYSTEM` `AuditLog` entry.
+- If Nomba uses a different signature header, keep the same payload and swap the header name.
+
+## 9. TrustVault Security Engine
+
+Method: `GET`
+
+URL:
+
+`{{baseUrl}}/trust-engine/users/{{userId}}/score`
+
+Use this to inspect the current trust score for a user after devices, transactions, and account state have been recorded.
+
+Method: `GET`
+
+URL:
+
+`{{baseUrl}}/trust-engine/users/{{userId}}/decision`
+
+Use this to get the trust score plus the action recommendation (`ALLOW`, `REVIEW`, `STEP_UP`, or `BLOCK`).
+
 ## Notes
 
 - Keep `accountName` plain and alphanumeric for Nomba.

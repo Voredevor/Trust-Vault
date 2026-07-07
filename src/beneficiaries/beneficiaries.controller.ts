@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { BeneficiariesService } from './beneficiaries.service';
-import { CreateBeneficiaryDto } from './dto/create-beneficiary.dto';
-import { UpdateBeneficiaryDto } from './dto/update-beneficiary.dto';
+import { BeneficiariesService } from './beneficiaries.service.js';
+import { CreateBeneficiaryDto } from './dto/create-beneficiary.dto.js';
+import { UpdateBeneficiaryDto } from './dto/update-beneficiary.dto.js';
 
 @Controller('beneficiaries')
 export class BeneficiariesController {
@@ -19,16 +19,16 @@ export class BeneficiariesController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.beneficiariesService.findOne(+id);
+    return this.beneficiariesService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateBeneficiaryDto: UpdateBeneficiaryDto) {
-    return this.beneficiariesService.update(+id, updateBeneficiaryDto);
+    return this.beneficiariesService.update(id, updateBeneficiaryDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.beneficiariesService.remove(+id);
+    return this.beneficiariesService.remove(id);
   }
 }

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { VirtualAccountsService } from './virtual-accounts.service';
-import { VirtualAccountsController } from './virtual-accounts.controller';
-import { NombaModule } from '../nomba/nomba.module';
-import { PrismaModule } from '../prisma/prisma.module';
+import { VirtualAccountsService } from './virtual-accounts.service.js';
+import { VirtualAccountsController } from './virtual-accounts.controller.js';
+import { NombaModule } from '../nomba/nomba.module.js';
+import { PrismaModule } from '../prisma/prisma.module.js';
 
 @Module({
   imports: [NombaModule, PrismaModule],

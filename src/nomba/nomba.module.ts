@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { NombaService } from './nomba.service';
-import { NombaController } from './nomba.controller';
+import { NombaService } from './nomba.service.js';
+import { NombaController } from './nomba.controller.js';
 
 @Module({
   providers: [NombaService],

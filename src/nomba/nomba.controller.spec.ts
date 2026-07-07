@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NombaController } from './nomba.controller';
-import { NombaService } from './nomba.service';
+import { NombaController } from './nomba.controller.js';
+import { NombaService } from './nomba.service.js';
 
 describe('NombaController', () => {
   let controller: NombaController;

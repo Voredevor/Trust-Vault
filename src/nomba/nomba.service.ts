@@ -1,6 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+	BadGatewayException,
+	Injectable,
+	UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosInstance, Method } from 'axios';
+import axios, { AxiosError, AxiosInstance, Method } from 'axios';
 
 type NombaAccountScope = 'parent' | 'sub';
 
@@ -82,28 +86,32 @@ export class NombaService {
 	}
 
 	async obtainAccessToken(): Promise<NombaTokenData> {
-		const response = await this.httpClient.post<NombaApiResponse<NombaTokenData>>(
-			'/v1/auth/token/issue',
-			{
-				grant_type: 'client_credentials',
-				client_id: this.clientId,
-				client_secret: this.clientSecret,
-			},
-			{
-				headers: {
-					accountId: this.parentAccountId,
+		try {
+			const response = await this.httpClient.post<NombaApiResponse<NombaTokenData>>(
+				'/v1/auth/token/issue',
+				{
+					grant_type: 'client_credentials',
+					client_id: this.clientId,
+					client_secret: this.clientSecret,
 				},
-			},
-		);
+				{
+					headers: {
+						accountId: this.parentAccountId,
+					},
+				},
+			);
 
-		this.assertSuccess(response.data);
-		this.cachedToken = {
-			accessToken: response.data.data.access_token,
-			refreshToken: response.data.data.refresh_token,
-			expiresAt: new Date(response.data.data.expiresAt),
-		};
+			this.assertSuccess(response.data);
+			this.cachedToken = {
+				accessToken: response.data.data.access_token,
+				refreshToken: response.data.data.refresh_token,
+				expiresAt: new Date(response.data.data.expiresAt),
+			};
 
-		return response.data.data;
+			return response.data.data;
+		} catch (error) {
+			this.handleNombaError(error);
+		}
 	}
 
 	async request<TResponse, TBody = unknown>(
@@ -112,18 +120,22 @@ export class NombaService {
 		const accessToken = await this.getAccessToken();
 		const accountId = this.resolveAccountId(options.accountScope);
 
-		const response = await this.httpClient.request<NombaApiResponse<TResponse>>({
-			method: options.method,
-			url: options.path,
-			data: options.body,
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-				accountId,
-			},
-		});
+		try {
+			const response = await this.httpClient.request<NombaApiResponse<TResponse>>({
+				method: options.method,
+				url: options.path,
+				data: options.body,
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					accountId,
+				},
+			});
 
-		this.assertSuccess(response.data);
-		return response.data;
+			this.assertSuccess(response.data);
+			return response.data;
+		} catch (error) {
+			this.handleNombaError(error);
+		}
 	}
 
 	async fetchParentAccountBalance(): Promise<NombaApiResponse<NombaAccountBalanceData>> {
@@ -203,6 +215,25 @@ export class NombaService {
 		throw new UnauthorizedException(
 			`Nomba request failed: ${response.description}`,
 		);
+	}
+
+	private handleNombaError(error: unknown): never {
+		if (axios.isAxiosError(error)) {
+			const axiosError = error as AxiosError<{
+				description?: string;
+				message?: string;
+				error?: string;
+			}>;
+			const upstreamMessage =
+				axiosError.response?.data?.description ??
+				axiosError.response?.data?.message ??
+				axiosError.response?.data?.error ??
+				axiosError.message;
+
+			throw new BadGatewayException(`Nomba request failed: ${upstreamMessage}`);
+		}
+
+		throw error;
 	}
 
 	private get baseUrl(): string {

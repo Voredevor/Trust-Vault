@@ -4,7 +4,7 @@ TrustVault is a backend-first trust and payment security layer built on top of N
 
 ## Current Phase
 
-Phase 5 - Webhooks
+Phase 7 - Frontend Dashboard Shell
 
 ## Project Goal
 
@@ -36,12 +36,13 @@ Provide a reusable security layer that fintechs and businesses can integrate wit
 - First Prisma migration applied against Supabase
 - Nomba OAuth token acquisition works in production
 - First authenticated Nomba API request works in production
+- Embedded operator dashboard shell now serves from the root route
 
 ## Current Focus
 
-- Review Nomba webhook requirements and signature verification
-- Decide on Cloudflare Tunnel or a deployed endpoint for local webhook testing
-- Build the webhook receiver and verifier
+- Harden the dashboard shell and the existing API flows with additional testing
+- Prepare webhook firing setup so external delivery tests can be run through a tunnel
+- Add a trust-engine audit trail if decision history becomes important
 
 ## What Must Stay True
 

@@ -21,6 +21,38 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
+## TrustVault
+
+TrustVault is a backend-first trust and payment security layer built on top of Nomba Dedicated Virtual Account APIs. The root route now serves an embedded dashboard shell for the completed Phase 7 frontend work.
+
+## View The Frontend
+
+Run the app in development mode and open the root route in your browser:
+
+```bash
+npm run dev
+```
+
+Then visit http://localhost:3000/ to see the TrustVault dashboard shell.
+
+The dashboard includes trust-score controls, virtual-account panels, webhook event views, live snapshot cards, and an operator refresh rail.
+
+This repository already contains the backend. The NestJS app serves both the API and the embedded frontend shell from the same process, so you do not need to start a separate frontend server.
+
+## Troubleshooting
+
+If the app fails with `EADDRINUSE: address already in use :::3000`, another process is already using port 3000. Stop the old process or start TrustVault on a different port.
+
+Examples:
+
+```bash
+PORT=3001 npm run dev
+```
+
+```powershell
+$env:PORT=3001; npm run dev
+```
+
 ## Description
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.

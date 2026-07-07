@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { NombaService } from '../nomba/nomba.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateVirtualAccountDto } from './dto/create-virtual-account.dto';
-import { UpdateVirtualAccountDto } from './dto/update-virtual-account.dto';
+import { NombaService } from '../nomba/nomba.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CreateVirtualAccountDto } from './dto/create-virtual-account.dto.js';
+import { UpdateVirtualAccountDto } from './dto/update-virtual-account.dto.js';
 
 @Injectable()
 export class VirtualAccountsService {
@@ -12,13 +12,14 @@ export class VirtualAccountsService {
   ) {}
 
   async create(createVirtualAccountDto: CreateVirtualAccountDto) {
+    const { userId, ...nombaPayload } = createVirtualAccountDto;
     const nombaResponse = await this.nombaService.createSubAccountVirtualAccount(
-      createVirtualAccountDto,
+      nombaPayload,
     );
 
     return this.prismaService.virtualAccount.create({
       data: {
-        userId: null,
+        userId: userId || null,
         label: createVirtualAccountDto.accountName,
         accountName: nombaResponse.data.accountName,
         accountNumber: nombaResponse.data.bankAccountNumber,
@@ -34,6 +35,11 @@ export class VirtualAccountsService {
       orderBy: {
         createdAt: 'desc',
       },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
     });
   }
 
@@ -42,6 +48,40 @@ export class VirtualAccountsService {
       where: {
         id,
       },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        transactions: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+  }
+
+  updateLocal(id: string, updateVirtualAccountDto: UpdateVirtualAccountDto) {
+    return this.prismaService.virtualAccount.update({
+      where: { id },
+      data: {
+        label: updateVirtualAccountDto.accountName,
+        accountName: updateVirtualAccountDto.accountName,
+        providerReference: updateVirtualAccountDto.newAccountRef,
+      },
+    });
+  }
+
+  suspendLocal(id: string) {
+    return this.prismaService.virtualAccount.update({
+      where: { id },
+      data: { status: 'INACTIVE' },
+    });
+  }
+
+  closeLocal(id: string) {
+    return this.prismaService.virtualAccount.update({
+      where: { id },
+      data: { status: 'CLOSED' },
     });
   }
 

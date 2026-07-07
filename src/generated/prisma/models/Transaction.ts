@@ -237,7 +237,7 @@ export type TransactionGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 
 export type TransactionGroupByOutputType = {
   id: string
-  userId: string
+  userId: string | null
   virtualAccountId: string | null
   beneficiaryId: string | null
   reference: string
@@ -278,7 +278,7 @@ export type TransactionWhereInput = {
   OR?: Prisma.TransactionWhereInput[]
   NOT?: Prisma.TransactionWhereInput | Prisma.TransactionWhereInput[]
   id?: Prisma.UuidFilter<"Transaction"> | string
-  userId?: Prisma.UuidFilter<"Transaction"> | string
+  userId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   virtualAccountId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   beneficiaryId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   reference?: Prisma.StringFilter<"Transaction"> | string
@@ -292,14 +292,14 @@ export type TransactionWhereInput = {
   occurredAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
-  user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   virtualAccount?: Prisma.XOR<Prisma.VirtualAccountNullableScalarRelationFilter, Prisma.VirtualAccountWhereInput> | null
   beneficiary?: Prisma.XOR<Prisma.BeneficiaryNullableScalarRelationFilter, Prisma.BeneficiaryWhereInput> | null
 }
 
 export type TransactionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  userId?: Prisma.SortOrderInput | Prisma.SortOrder
   virtualAccountId?: Prisma.SortOrderInput | Prisma.SortOrder
   beneficiaryId?: Prisma.SortOrderInput | Prisma.SortOrder
   reference?: Prisma.SortOrder
@@ -325,7 +325,7 @@ export type TransactionWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.TransactionWhereInput | Prisma.TransactionWhereInput[]
   OR?: Prisma.TransactionWhereInput[]
   NOT?: Prisma.TransactionWhereInput | Prisma.TransactionWhereInput[]
-  userId?: Prisma.UuidFilter<"Transaction"> | string
+  userId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   virtualAccountId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   beneficiaryId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   direction?: Prisma.EnumTransactionDirectionFilter<"Transaction"> | $Enums.TransactionDirection
@@ -337,14 +337,14 @@ export type TransactionWhereUniqueInput = Prisma.AtLeast<{
   occurredAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Transaction"> | Date | string
-  user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   virtualAccount?: Prisma.XOR<Prisma.VirtualAccountNullableScalarRelationFilter, Prisma.VirtualAccountWhereInput> | null
   beneficiary?: Prisma.XOR<Prisma.BeneficiaryNullableScalarRelationFilter, Prisma.BeneficiaryWhereInput> | null
 }, "id" | "reference" | "providerReference">
 
 export type TransactionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
+  userId?: Prisma.SortOrderInput | Prisma.SortOrder
   virtualAccountId?: Prisma.SortOrderInput | Prisma.SortOrder
   beneficiaryId?: Prisma.SortOrderInput | Prisma.SortOrder
   reference?: Prisma.SortOrder
@@ -370,7 +370,7 @@ export type TransactionScalarWhereWithAggregatesInput = {
   OR?: Prisma.TransactionScalarWhereWithAggregatesInput[]
   NOT?: Prisma.TransactionScalarWhereWithAggregatesInput | Prisma.TransactionScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"Transaction"> | string
-  userId?: Prisma.UuidWithAggregatesFilter<"Transaction"> | string
+  userId?: Prisma.UuidNullableWithAggregatesFilter<"Transaction"> | string | null
   virtualAccountId?: Prisma.UuidNullableWithAggregatesFilter<"Transaction"> | string | null
   beneficiaryId?: Prisma.UuidNullableWithAggregatesFilter<"Transaction"> | string | null
   reference?: Prisma.StringWithAggregatesFilter<"Transaction"> | string
@@ -399,14 +399,14 @@ export type TransactionCreateInput = {
   occurredAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutTransactionsInput
+  user?: Prisma.UserCreateNestedOneWithoutTransactionsInput
   virtualAccount?: Prisma.VirtualAccountCreateNestedOneWithoutTransactionsInput
   beneficiary?: Prisma.BeneficiaryCreateNestedOneWithoutTransactionsInput
 }
 
 export type TransactionUncheckedCreateInput = {
   id?: string
-  userId: string
+  userId?: string | null
   virtualAccountId?: string | null
   beneficiaryId?: string | null
   reference: string
@@ -435,14 +435,14 @@ export type TransactionUpdateInput = {
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
+  user?: Prisma.UserUpdateOneWithoutTransactionsNestedInput
   virtualAccount?: Prisma.VirtualAccountUpdateOneWithoutTransactionsNestedInput
   beneficiary?: Prisma.BeneficiaryUpdateOneWithoutTransactionsNestedInput
 }
 
 export type TransactionUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   virtualAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   beneficiaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -460,7 +460,7 @@ export type TransactionUncheckedUpdateInput = {
 
 export type TransactionCreateManyInput = {
   id?: string
-  userId: string
+  userId?: string | null
   virtualAccountId?: string | null
   beneficiaryId?: string | null
   reference: string
@@ -493,7 +493,7 @@ export type TransactionUpdateManyMutationInput = {
 
 export type TransactionUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   virtualAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   beneficiaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -786,7 +786,7 @@ export type TransactionScalarWhereInput = {
   OR?: Prisma.TransactionScalarWhereInput[]
   NOT?: Prisma.TransactionScalarWhereInput | Prisma.TransactionScalarWhereInput[]
   id?: Prisma.UuidFilter<"Transaction"> | string
-  userId?: Prisma.UuidFilter<"Transaction"> | string
+  userId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   virtualAccountId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   beneficiaryId?: Prisma.UuidNullableFilter<"Transaction"> | string | null
   reference?: Prisma.StringFilter<"Transaction"> | string
@@ -815,13 +815,13 @@ export type TransactionCreateWithoutBeneficiaryInput = {
   occurredAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutTransactionsInput
+  user?: Prisma.UserCreateNestedOneWithoutTransactionsInput
   virtualAccount?: Prisma.VirtualAccountCreateNestedOneWithoutTransactionsInput
 }
 
 export type TransactionUncheckedCreateWithoutBeneficiaryInput = {
   id?: string
-  userId: string
+  userId?: string | null
   virtualAccountId?: string | null
   reference: string
   providerReference?: string | null
@@ -875,13 +875,13 @@ export type TransactionCreateWithoutVirtualAccountInput = {
   occurredAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutTransactionsInput
+  user?: Prisma.UserCreateNestedOneWithoutTransactionsInput
   beneficiary?: Prisma.BeneficiaryCreateNestedOneWithoutTransactionsInput
 }
 
 export type TransactionUncheckedCreateWithoutVirtualAccountInput = {
   id?: string
-  userId: string
+  userId?: string | null
   beneficiaryId?: string | null
   reference: string
   providerReference?: string | null
@@ -992,7 +992,7 @@ export type TransactionUncheckedUpdateManyWithoutUserInput = {
 
 export type TransactionCreateManyBeneficiaryInput = {
   id?: string
-  userId: string
+  userId?: string | null
   virtualAccountId?: string | null
   reference: string
   providerReference?: string | null
@@ -1020,13 +1020,13 @@ export type TransactionUpdateWithoutBeneficiaryInput = {
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
+  user?: Prisma.UserUpdateOneWithoutTransactionsNestedInput
   virtualAccount?: Prisma.VirtualAccountUpdateOneWithoutTransactionsNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutBeneficiaryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   virtualAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   providerReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1043,7 +1043,7 @@ export type TransactionUncheckedUpdateWithoutBeneficiaryInput = {
 
 export type TransactionUncheckedUpdateManyWithoutBeneficiaryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   virtualAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   providerReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1060,7 +1060,7 @@ export type TransactionUncheckedUpdateManyWithoutBeneficiaryInput = {
 
 export type TransactionCreateManyVirtualAccountInput = {
   id?: string
-  userId: string
+  userId?: string | null
   beneficiaryId?: string | null
   reference: string
   providerReference?: string | null
@@ -1088,13 +1088,13 @@ export type TransactionUpdateWithoutVirtualAccountInput = {
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutTransactionsNestedInput
+  user?: Prisma.UserUpdateOneWithoutTransactionsNestedInput
   beneficiary?: Prisma.BeneficiaryUpdateOneWithoutTransactionsNestedInput
 }
 
 export type TransactionUncheckedUpdateWithoutVirtualAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   beneficiaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   providerReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1111,7 +1111,7 @@ export type TransactionUncheckedUpdateWithoutVirtualAccountInput = {
 
 export type TransactionUncheckedUpdateManyWithoutVirtualAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   beneficiaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   providerReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1144,7 +1144,7 @@ export type TransactionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   occurredAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.Transaction$userArgs<ExtArgs>
   virtualAccount?: boolean | Prisma.Transaction$virtualAccountArgs<ExtArgs>
   beneficiary?: boolean | Prisma.Transaction$beneficiaryArgs<ExtArgs>
 }, ExtArgs["result"]["transaction"]>
@@ -1165,7 +1165,7 @@ export type TransactionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   occurredAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.Transaction$userArgs<ExtArgs>
   virtualAccount?: boolean | Prisma.Transaction$virtualAccountArgs<ExtArgs>
   beneficiary?: boolean | Prisma.Transaction$beneficiaryArgs<ExtArgs>
 }, ExtArgs["result"]["transaction"]>
@@ -1186,7 +1186,7 @@ export type TransactionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   occurredAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.Transaction$userArgs<ExtArgs>
   virtualAccount?: boolean | Prisma.Transaction$virtualAccountArgs<ExtArgs>
   beneficiary?: boolean | Prisma.Transaction$beneficiaryArgs<ExtArgs>
 }, ExtArgs["result"]["transaction"]>
@@ -1211,17 +1211,17 @@ export type TransactionSelectScalar = {
 
 export type TransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "virtualAccountId" | "beneficiaryId" | "reference" | "providerReference" | "direction" | "status" | "amount" | "currency" | "narration" | "metadata" | "occurredAt" | "createdAt" | "updatedAt", ExtArgs["result"]["transaction"]>
 export type TransactionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.Transaction$userArgs<ExtArgs>
   virtualAccount?: boolean | Prisma.Transaction$virtualAccountArgs<ExtArgs>
   beneficiary?: boolean | Prisma.Transaction$beneficiaryArgs<ExtArgs>
 }
 export type TransactionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.Transaction$userArgs<ExtArgs>
   virtualAccount?: boolean | Prisma.Transaction$virtualAccountArgs<ExtArgs>
   beneficiary?: boolean | Prisma.Transaction$beneficiaryArgs<ExtArgs>
 }
 export type TransactionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.Transaction$userArgs<ExtArgs>
   virtualAccount?: boolean | Prisma.Transaction$virtualAccountArgs<ExtArgs>
   beneficiary?: boolean | Prisma.Transaction$beneficiaryArgs<ExtArgs>
 }
@@ -1229,13 +1229,13 @@ export type TransactionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.
 export type $TransactionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Transaction"
   objects: {
-    user: Prisma.$UserPayload<ExtArgs>
+    user: Prisma.$UserPayload<ExtArgs> | null
     virtualAccount: Prisma.$VirtualAccountPayload<ExtArgs> | null
     beneficiary: Prisma.$BeneficiaryPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    userId: string
+    userId: string | null
     virtualAccountId: string | null
     beneficiaryId: string | null
     reference: string
@@ -1643,7 +1643,7 @@ readonly fields: TransactionFieldRefs;
  */
 export interface Prisma__TransactionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  user<T extends Prisma.Transaction$userArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$userArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   virtualAccount<T extends Prisma.Transaction$virtualAccountArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$virtualAccountArgs<ExtArgs>>): Prisma.Prisma__VirtualAccountClient<runtime.Types.Result.GetResult<Prisma.$VirtualAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   beneficiary<T extends Prisma.Transaction$beneficiaryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Transaction$beneficiaryArgs<ExtArgs>>): Prisma.Prisma__BeneficiaryClient<runtime.Types.Result.GetResult<Prisma.$BeneficiaryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
@@ -2088,6 +2088,25 @@ export type TransactionDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many Transactions to delete.
    */
   limit?: number
+}
+
+/**
+ * Transaction.user
+ */
+export type Transaction$userArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**

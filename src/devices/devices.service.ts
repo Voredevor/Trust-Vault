@@ -1,26 +1,62 @@
 import { Injectable } from '@nestjs/common';
-import { CreateDeviceDto } from './dto/create-device.dto';
-import { UpdateDeviceDto } from './dto/update-device.dto';
+import { Prisma } from '../generated/prisma/client.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CreateDeviceDto } from './dto/create-device.dto.js';
+import { UpdateDeviceDto } from './dto/update-device.dto.js';
 
 @Injectable()
 export class DevicesService {
+  constructor(private readonly prisma: PrismaService) {}
+
   create(createDeviceDto: CreateDeviceDto) {
-    return 'This action adds a new device';
+    return this.prisma.device.create({
+      data: {
+        userId: createDeviceDto.userId,
+        name: createDeviceDto.name,
+        fingerprint: createDeviceDto.fingerprint,
+        status: createDeviceDto.status ?? 'PENDING',
+        trustedAt: createDeviceDto.status === 'TRUSTED' ? new Date() : undefined,
+        metadata: createDeviceDto.metadata as Prisma.InputJsonValue,
+      },
+    });
   }
 
   findAll() {
-    return `This action returns all devices`;
+    return this.prisma.device.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} device`;
+  findOne(id: string) {
+    return this.prisma.device.findUniqueOrThrow({
+      where: { id },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    });
   }
 
-  update(id: number, updateDeviceDto: UpdateDeviceDto) {
-    return `This action updates a #${id} device`;
+  update(id: string, updateDeviceDto: UpdateDeviceDto) {
+    return this.prisma.device.update({
+      where: { id },
+      data: {
+        name: updateDeviceDto.name,
+        status: updateDeviceDto.status,
+        trustedAt: updateDeviceDto.status === 'TRUSTED' ? new Date() : undefined,
+        lastSeenAt: new Date(),
+        metadata: updateDeviceDto.metadata as Prisma.InputJsonValue,
+      },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} device`;
+  remove(id: string) {
+    return this.prisma.device.delete({ where: { id } });
   }
 }

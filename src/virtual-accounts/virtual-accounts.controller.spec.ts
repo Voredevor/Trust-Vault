@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { VirtualAccountsController } from './virtual-accounts.controller';
-import { VirtualAccountsService } from './virtual-accounts.service';
+import { VirtualAccountsController } from './virtual-accounts.controller.js';
+import { VirtualAccountsService } from './virtual-accounts.service.js';
 
 jest.mock('../generated/prisma/client', () => {
   class PrismaClientMock {

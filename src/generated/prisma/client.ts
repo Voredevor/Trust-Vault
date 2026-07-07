@@ -71,3 +71,8 @@ export type Transaction = Prisma.TransactionModel
  * 
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model WebhookEvent
+ * 
+ */
+export type WebhookEvent = Prisma.WebhookEventModel

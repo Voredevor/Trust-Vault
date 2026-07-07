@@ -151,8 +151,8 @@ model VirtualAccount {
 
 model Transaction {
   id                String              @id @default(uuid()) @db.Uuid
-  userId            String              @db.Uuid
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String?             @db.Uuid
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
   virtualAccountId  String?             @db.Uuid
   virtualAccount    VirtualAccount?     @relation(fields: [virtualAccountId], references: [id], onDelete: SetNull)
   beneficiaryId     String?             @db.Uuid
@@ -191,4 +191,21 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([resourceType, resourceId])
   @@index([severity])
+}
+
+model WebhookEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  provider        String
+  eventType       String
+  providerEventId String?   @unique
+  signature       String?
+  verified        Boolean  @default(false)
+  payload         Json
+  headers         Json?
+  receivedAt      DateTime @default(now())
+  processedAt     DateTime?
+  errorMessage    String?
+
+  @@index([provider, eventType, receivedAt])
+  @@index([verified, receivedAt])
 }

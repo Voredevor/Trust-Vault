@@ -1,4 +1,5 @@
 export class CreateVirtualAccountDto {
+	userId?: string;
 	accountRef: string;
 	accountName: string;
 	currency: string;

@@ -1,14 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
-import { NombaService } from './nomba.service';
-
-jest.mock('axios', () => ({
-  __esModule: true,
-  default: {
-    create: jest.fn(),
-  },
-}));
+import { NombaService } from './nomba.service.js';
 
 describe('NombaService', () => {
   let service: NombaService;
@@ -18,11 +10,6 @@ describe('NombaService', () => {
   beforeEach(async () => {
     postMock = jest.fn();
     requestMock = jest.fn();
-
-    (axios.create as jest.Mock).mockReturnValue({
-      post: postMock,
-      request: requestMock,
-    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -58,6 +45,12 @@ describe('NombaService', () => {
     }).compile();
 
     service = module.get<NombaService>(NombaService);
+    Object.assign(service, {
+      httpClient: {
+        post: postMock,
+        request: requestMock,
+      },
+    });
   });
 
   it('should be defined', () => {

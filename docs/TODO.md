@@ -36,12 +36,66 @@
 
 ## Phase 5 - Webhooks
 
-- [ ] Review Nomba webhook requirements and signature verification
-- [ ] Decide on Cloudflare Tunnel or deployed URL for local webhook testing
-- [ ] Build the webhook receiver and verifier
-- [ ] Store incoming payment events in TrustVault
+- [x] Review Nomba webhook requirements and signature verification
+- [x] Build the webhook receiver and verifier
+- [x] Store incoming payment events in TrustVault
+- [x] Map verified payment webhooks into transactions and audit logs
+
+## Phase 5 Notes
+
+- The webhook receiver now verifies Nomba signatures from the raw request body.
+- Verified webhook events are persisted in Prisma as `WebhookEvent`.
+- Matching payment events can create a `Transaction` and `AuditLog` when a virtual account is recognized.
+- Tunnel-based webhook firing instructions are documented in `docs/WEBHOOK_SETUP.md`.
+
+## Phase 6 - TrustVault Security Engine
+
+- [x] Define the trust engine data model and scoring inputs
+- [x] Decide how device status influences risk evaluation
+- [x] Add the first trust engine rules or scoring service
+- [x] Convert trust scores into a decision flow for allow, review, step-up, or block
+- [x] Expose a trust decision endpoint for a user
+
+## Phase 6 Notes
+
+- The first trust score uses existing Prisma data for user status, device status, transaction history, and virtual-account state.
+- The trust engine now exposes a score endpoint for a user without introducing a new schema table.
+- The trust engine now also returns an explicit action recommendation on top of the score.
+
+## Phase 7 - Frontend Dashboard Shell
+
+- [x] Replace the root route with an embedded dashboard shell
+- [x] Wire the dashboard to trust score and decision endpoints
+- [x] Add dashboard panels for virtual accounts and webhook events
+- [x] Revalidate the app build and test suite after the dashboard change
+
+## Phase 7 Notes
+
+- The root route now serves a lightweight operator dashboard instead of the old hello-world response.
+- The dashboard is a shell only; it reuses the existing backend APIs rather than introducing a separate frontend stack.
+- Webhook delivery setup is now documented so external firing tests can be run through a public tunnel.
+- The dashboard now includes live snapshot cards and an operator rail with a refresh-all action.
+
+## Phase 8 - Testing
+
+- [x] Replace the stale root hello-world smoke test with a dashboard-aware app test
+- [x] Add broader coverage for the trust-engine decision flow
+- [x] Add a webhook signature failure test at the HTTP boundary
+- [x] Add a happy-path webhook ingestion smoke test through the controller layer
+
+## Phase 8 Notes
+
+- The root dashboard smoke test now asserts the real TrustVault shell instead of the old hello-world output.
+- The next test-hardening step is to cover the trust-engine and webhook HTTP paths more directly.
+
+## Webhook Delivery Follow-up
+
+- [x] Create webhook firing setup documentation
+- [x] Update project documentation for webhook testing
+- [x] Prepare for external delivery testing
 
 ## Phase Checkpoint
 
 - [x] Do not start virtual account creation until Phase 2 is complete
-- [ ] Do not expand trust logic until the persistence layer is stable
+- [x] Do not expand trust logic until the persistence layer is stable
+- [x] Do not advance past the dashboard shell until the build and test suite pass

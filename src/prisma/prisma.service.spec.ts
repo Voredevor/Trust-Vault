@@ -11,12 +11,14 @@ jest.mock('../generated/prisma/client', () => {
   };
 });
 
-import { PrismaService } from './prisma.service';
+import { PrismaService } from './prisma.service.js';
 
 describe('PrismaService', () => {
   let service: PrismaService;
 
   beforeEach(async () => {
+    process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/trustvault_test';
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [PrismaService],
     }).compile();
