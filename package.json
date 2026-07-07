@@ -6,12 +6,15 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "render:build": "npm run prisma:generate && npm run prisma:migrate:deploy && npm run build",
+    "render:build": "npm install --include=dev && npm run prisma:generate && npm run prisma:migrate:deploy && npm run build",
     "start": "nest start",
     "dev": "nest start --watch",
     "start:dev": "nest start --watch",
