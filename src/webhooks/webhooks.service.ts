@@ -130,9 +130,8 @@ export class WebhooksService {
       throw new UnauthorizedException('Missing Nomba webhook signature');
     }
 
-    const body = rawBody ?? Buffer.from(JSON.stringify(payload ?? {}));
     const verifiedSignatureCandidate = signatureCandidates.find((candidate) =>
-      this.verifySignature(body, candidate.value, webhookSecret),
+      this.verifySignature(payload, headers, candidate.value, webhookSecret),
     );
     if (verifiedSignatureCandidate) {
       signatureHeaderName = verifiedSignatureCandidate.name;
@@ -431,30 +430,60 @@ export class WebhooksService {
     };
   }
 
-  private verifySignature(body: Buffer, signature: string, secret: string): boolean {
+  private verifySignature(
+    payload: unknown,
+    headers: IncomingHttpHeaders,
+    signature: string,
+    secret: string,
+  ): boolean {
     const normalizedSignature = signature.trim();
     const signaturePrefix = 'sha256=';
-    const signatureValue = normalizedSignature
+    const receivedSignature = normalizedSignature
       .toLowerCase()
       .startsWith(signaturePrefix)
       ? normalizedSignature.slice(signaturePrefix.length)
       : normalizedSignature;
-    const expectedHex = createHmac('sha256', secret).update(body).digest('hex');
-    const expectedBase64 = createHmac('sha256', secret).update(body).digest('base64');
+    const timestamp = this.readHeader(headers, ['nomba-timestamp']) ?? '';
+    const signedString = this.buildNombaSignedString(payload, timestamp);
+    const calculatedBase64Hmac = createHmac('sha256', secret)
+      .update(signedString)
+      .digest('base64');
+    const verificationSucceeded = this.safeCompare(
+      receivedSignature.toLowerCase(),
+      calculatedBase64Hmac.toLowerCase(),
+    );
 
     this.logger.log({
-      stage: 'Signature extraction',
-      originalHeaderValue: normalizedSignature,
-      extractedSignature: signatureValue,
-      extractedSignatureLength: signatureValue.length,
-      expectedBase64Length: expectedBase64.length,
-      expectedHexLength: expectedHex.length,
+      stage: 'Nomba signature verification',
+      signedStringUsed: signedString,
+      calculatedBase64Hmac,
+      receivedSignature,
+      verificationSucceeded,
     });
 
-    return (
-      this.safeCompare(signatureValue.toLowerCase(), expectedHex) ||
-      this.safeCompare(signatureValue, expectedBase64)
-    );
+    return verificationSucceeded;
+  }
+
+  private buildNombaSignedString(payload: unknown, timestamp: string): string {
+    const eventPayload = this.asRecord(payload);
+    const data = this.asRecord(eventPayload.data);
+    const merchant = this.asRecord(data.merchant);
+    const transaction = this.asRecord(data.transaction);
+    const transactionResponseCode = this.readPayloadValue(transaction, ['responseCode']) ?? '';
+
+    return [
+      this.readPayloadValue(eventPayload, ['event_type']) ?? '',
+      this.readPayloadValue(eventPayload, ['requestId']) ?? '',
+      this.readPayloadValue(merchant, ['userId']) ?? '',
+      this.readPayloadValue(merchant, ['walletId']) ?? '',
+      this.readPayloadValue(transaction, ['transactionId']) ?? '',
+      this.readPayloadValue(transaction, ['type']) ?? '',
+      this.readPayloadValue(transaction, ['time']) ?? '',
+      transactionResponseCode.toLowerCase() === 'null'
+        ? ''
+        : transactionResponseCode,
+      timestamp,
+    ].join(':');
   }
 
   private safeCompare(leftValue: string, rightValue: string): boolean {

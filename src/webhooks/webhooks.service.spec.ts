@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 describe('WebhooksService', () => {
   let service: WebhooksService;
   const webhookSecret = 'webhook-secret';
+  const nombaTimestamp = '2025-09-29T10:51:44Z';
 
   const prismaService = {
     webhookEvent: {
@@ -53,6 +54,67 @@ describe('WebhooksService', () => {
     }),
   };
 
+  const createNombaPayload = (overrides: Record<string, unknown> = {}) => ({
+    event_type: 'payment_success',
+    requestId: '45f2dc2d-d559-4773-bba3-2d5ec17b2e20',
+    data: {
+      merchant: {
+        walletId: '6756ff80aafe04a795f18b38',
+        walletBalance: 6052,
+        userId: 'b7b10e81-e57d-41d0-8fdc-f4e23a132bbf',
+      },
+      terminal: {},
+      transaction: {
+        aliasAccountNumber: '5343270516',
+        fee: 5,
+        sessionId: 'IFAP-TRANSFER-46501-e0339485-1a2f-4b43-9bd5-fec9649e5928',
+        type: 'vact_transfer',
+        transactionId: 'API-VACT_TRA-B7B10-0435b274-807a-4bc7-8abe-9dbb4548fd7a',
+        aliasAccountName: 'SAMPLE/JOHN DOE',
+        responseCode: '',
+        originatingFrom: 'api',
+        transactionAmount: 10,
+        narration: 'John Doe Transfer 10.00 To SAMPLE/JOHN DOE - Nomba',
+        time: '2025-09-29T10:51:44Z',
+        aliasAccountReference: 'sampleAccountReference',
+        aliasAccountType: 'VIRTUAL',
+      },
+      customer: {
+        bankCode: '090645',
+        senderName: 'John Doe',
+        bankName: 'Nombank',
+        accountNumber: '0000000000',
+      },
+    },
+    ...overrides,
+  });
+
+  const signNombaPayload = (
+    payload: ReturnType<typeof createNombaPayload>,
+    timestamp = nombaTimestamp,
+  ) => {
+    const data = payload.data as Record<string, any>;
+    const merchant = data.merchant;
+    const transaction = data.transaction;
+    const responseCode =
+      String(transaction.responseCode ?? '').toLowerCase() === 'null'
+        ? ''
+        : String(transaction.responseCode ?? '');
+    const signedString = [
+      payload.event_type,
+      payload.requestId,
+      merchant.userId,
+      merchant.walletId,
+      transaction.transactionId,
+      transaction.type,
+      transaction.time,
+      responseCode,
+      timestamp,
+    ].join(':');
+
+    return createHmac('sha256', webhookSecret).update(signedString).digest('base64');
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -82,14 +144,15 @@ describe('WebhooksService', () => {
   });
 
   it('verifies and stores a signed nomba webhook', async () => {
-	const payload = { event: 'payment.received', amount: '1000' };
+	const payload = createNombaPayload();
 	const rawBody = Buffer.from(JSON.stringify(payload));
-	const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+	const signature = signNombaPayload(payload);
 
 	await expect(
 		service.ingestNombaWebhook(
 			{
-				'x-nomba-signature': signature,
+				'nomba-signature': signature,
+        'nomba-timestamp': nombaTimestamp,
 				'x-nomba-event': 'payment.received',
 				'x-nomba-event-id': 'evt_123',
 			},
@@ -119,9 +182,9 @@ describe('WebhooksService', () => {
   });
 
   it('accepts Nomba signature value headers from Render webhook requests', async () => {
-    const payload = { event: 'payment.received', amount: '1000' };
+    const payload = createNombaPayload();
     const rawBody = Buffer.from(JSON.stringify(payload));
-    const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+    const signature = signNombaPayload(payload);
 
     await expect(
       service.ingestNombaWebhook(
@@ -130,6 +193,7 @@ describe('WebhooksService', () => {
           'nomba-signature-algorithm': 'HMAC-SHA256',
           'nomba-signature-version': '1',
           'nomba-sig-value': signature,
+          'nomba-timestamp': nombaTimestamp,
         },
         payload,
         rawBody,
@@ -154,11 +218,9 @@ describe('WebhooksService', () => {
   });
 
   it('preserves Base64 signature padding during verification', async () => {
-    const payload = { event: 'payment.received', amount: '1000' };
+    const payload = createNombaPayload();
     const rawBody = Buffer.from(JSON.stringify(payload));
-    const signature = createHmac('sha256', webhookSecret)
-      .update(rawBody)
-      .digest('base64');
+    const signature = signNombaPayload(payload);
 
     expect(signature.endsWith('=')).toBe(true);
 
@@ -166,6 +228,7 @@ describe('WebhooksService', () => {
       service.ingestNombaWebhook(
         {
           'nomba-signature': signature,
+          'nomba-timestamp': nombaTimestamp,
         },
         payload,
         rawBody,
@@ -177,14 +240,15 @@ describe('WebhooksService', () => {
   });
 
   it('only strips an explicit sha256 signature prefix', async () => {
-    const payload = { event: 'payment.received', amount: '1000' };
+    const payload = createNombaPayload();
     const rawBody = Buffer.from(JSON.stringify(payload));
-    const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+    const signature = signNombaPayload(payload);
 
     await expect(
       service.ingestNombaWebhook(
         {
           'nomba-signature': `sha256=${signature}`,
+          'nomba-timestamp': nombaTimestamp,
         },
         payload,
         rawBody,
@@ -196,14 +260,15 @@ describe('WebhooksService', () => {
   });
 
   it('treats incoming signature header names as lowercase-insensitive', async () => {
-    const payload = { event: 'payment.received', amount: '1000' };
+    const payload = createNombaPayload();
     const rawBody = Buffer.from(JSON.stringify(payload));
-    const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+    const signature = signNombaPayload(payload);
 
     await expect(
       service.ingestNombaWebhook(
         {
           'Nomba-Sig-Value': signature,
+          'Nomba-Timestamp': nombaTimestamp,
         },
         payload,
         rawBody,
@@ -216,6 +281,7 @@ describe('WebhooksService', () => {
 
   it('creates a transaction and audit log when a webhook matches a virtual account', async () => {
     const payload = {
+      ...createNombaPayload(),
       event: 'payment.received',
       amount: '1250',
       currency: 'NGN',
@@ -223,7 +289,7 @@ describe('WebhooksService', () => {
       accountReference: 'account-ref',
     };
     const rawBody = Buffer.from(JSON.stringify(payload));
-    const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+    const signature = signNombaPayload(payload);
 
     prismaService.virtualAccount.findFirst.mockResolvedValue({
       id: 'virtual-account-id',
@@ -236,7 +302,8 @@ describe('WebhooksService', () => {
     await expect(
       service.ingestNombaWebhook(
         {
-          'x-nomba-signature': signature,
+          'nomba-signature': signature,
+          'nomba-timestamp': nombaTimestamp,
           'x-nomba-event': 'payment.received',
           'x-nomba-event-id': 'evt_456',
         },
