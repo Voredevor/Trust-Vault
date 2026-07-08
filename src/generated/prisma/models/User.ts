@@ -35,6 +35,7 @@ export type UserMinAggregateOutputType = {
   status: $Enums.UserStatus | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -48,6 +49,7 @@ export type UserMaxAggregateOutputType = {
   status: $Enums.UserStatus | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -61,6 +63,7 @@ export type UserCountAggregateOutputType = {
   status: number
   createdAt: number
   updatedAt: number
+  deletedAt: number
   _all: number
 }
 
@@ -76,6 +79,7 @@ export type UserMinAggregateInputType = {
   status?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -89,6 +93,7 @@ export type UserMaxAggregateInputType = {
   status?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -102,6 +107,7 @@ export type UserCountAggregateInputType = {
   status?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
   _all?: true
 }
 
@@ -188,6 +194,7 @@ export type UserGroupByOutputType = {
   status: $Enums.UserStatus
   createdAt: Date
   updatedAt: Date
+  deletedAt: Date | null
   _count: UserCountAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
@@ -222,6 +229,7 @@ export type UserWhereInput = {
   status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   devices?: Prisma.DeviceListRelationFilter
   beneficiaries?: Prisma.BeneficiaryListRelationFilter
   virtualAccounts?: Prisma.VirtualAccountListRelationFilter
@@ -240,6 +248,7 @@ export type UserOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   devices?: Prisma.DeviceOrderByRelationAggregateInput
   beneficiaries?: Prisma.BeneficiaryOrderByRelationAggregateInput
   virtualAccounts?: Prisma.VirtualAccountOrderByRelationAggregateInput
@@ -261,6 +270,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   devices?: Prisma.DeviceListRelationFilter
   beneficiaries?: Prisma.BeneficiaryListRelationFilter
   virtualAccounts?: Prisma.VirtualAccountListRelationFilter
@@ -279,6 +289,7 @@ export type UserOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
@@ -298,6 +309,7 @@ export type UserScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumUserStatusWithAggregatesFilter<"User"> | $Enums.UserStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
 }
 
 export type UserCreateInput = {
@@ -311,6 +323,7 @@ export type UserCreateInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   beneficiaries?: Prisma.BeneficiaryCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountCreateNestedManyWithoutUserInput
@@ -329,6 +342,7 @@ export type UserUncheckedCreateInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   beneficiaries?: Prisma.BeneficiaryUncheckedCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedCreateNestedManyWithoutUserInput
@@ -347,6 +361,7 @@ export type UserUpdateInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   beneficiaries?: Prisma.BeneficiaryUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUpdateManyWithoutUserNestedInput
@@ -365,6 +380,7 @@ export type UserUncheckedUpdateInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   beneficiaries?: Prisma.BeneficiaryUncheckedUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedUpdateManyWithoutUserNestedInput
@@ -383,6 +399,7 @@ export type UserCreateManyInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -396,6 +413,7 @@ export type UserUpdateManyMutationInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -409,6 +427,7 @@ export type UserUncheckedUpdateManyInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -422,6 +441,7 @@ export type UserCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -435,6 +455,7 @@ export type UserMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -448,6 +469,7 @@ export type UserMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -478,6 +500,10 @@ export type EnumUserStatusFieldUpdateOperationsInput = {
 
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 export type UserCreateNestedOneWithoutDevicesInput = {
@@ -567,6 +593,7 @@ export type UserCreateWithoutDevicesInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   beneficiaries?: Prisma.BeneficiaryCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutUserInput
@@ -584,6 +611,7 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   beneficiaries?: Prisma.BeneficiaryUncheckedCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutUserInput
@@ -617,6 +645,7 @@ export type UserUpdateWithoutDevicesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   beneficiaries?: Prisma.BeneficiaryUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutUserNestedInput
@@ -634,6 +663,7 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   beneficiaries?: Prisma.BeneficiaryUncheckedUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutUserNestedInput
@@ -651,6 +681,7 @@ export type UserCreateWithoutBeneficiariesInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutUserInput
@@ -668,6 +699,7 @@ export type UserUncheckedCreateWithoutBeneficiariesInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutUserInput
@@ -701,6 +733,7 @@ export type UserUpdateWithoutBeneficiariesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutUserNestedInput
@@ -718,6 +751,7 @@ export type UserUncheckedUpdateWithoutBeneficiariesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutUserNestedInput
@@ -735,6 +769,7 @@ export type UserCreateWithoutVirtualAccountsInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   beneficiaries?: Prisma.BeneficiaryCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutUserInput
@@ -752,6 +787,7 @@ export type UserUncheckedCreateWithoutVirtualAccountsInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   beneficiaries?: Prisma.BeneficiaryUncheckedCreateNestedManyWithoutUserInput
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutUserInput
@@ -785,6 +821,7 @@ export type UserUpdateWithoutVirtualAccountsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   beneficiaries?: Prisma.BeneficiaryUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutUserNestedInput
@@ -802,6 +839,7 @@ export type UserUncheckedUpdateWithoutVirtualAccountsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   beneficiaries?: Prisma.BeneficiaryUncheckedUpdateManyWithoutUserNestedInput
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutUserNestedInput
@@ -819,6 +857,7 @@ export type UserCreateWithoutTransactionsInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   beneficiaries?: Prisma.BeneficiaryCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountCreateNestedManyWithoutUserInput
@@ -836,6 +875,7 @@ export type UserUncheckedCreateWithoutTransactionsInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   beneficiaries?: Prisma.BeneficiaryUncheckedCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedCreateNestedManyWithoutUserInput
@@ -869,6 +909,7 @@ export type UserUpdateWithoutTransactionsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   beneficiaries?: Prisma.BeneficiaryUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUpdateManyWithoutUserNestedInput
@@ -886,6 +927,7 @@ export type UserUncheckedUpdateWithoutTransactionsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   beneficiaries?: Prisma.BeneficiaryUncheckedUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedUpdateManyWithoutUserNestedInput
@@ -903,6 +945,7 @@ export type UserCreateWithoutAuditLogsInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
   beneficiaries?: Prisma.BeneficiaryCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountCreateNestedManyWithoutUserInput
@@ -920,6 +963,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   status?: $Enums.UserStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
   beneficiaries?: Prisma.BeneficiaryUncheckedCreateNestedManyWithoutUserInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedCreateNestedManyWithoutUserInput
@@ -953,6 +997,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
   beneficiaries?: Prisma.BeneficiaryUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUpdateManyWithoutUserNestedInput
@@ -970,6 +1015,7 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
   beneficiaries?: Prisma.BeneficiaryUncheckedUpdateManyWithoutUserNestedInput
   virtualAccounts?: Prisma.VirtualAccountUncheckedUpdateManyWithoutUserNestedInput
@@ -1054,6 +1100,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
   devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
   beneficiaries?: boolean | Prisma.User$beneficiariesArgs<ExtArgs>
   virtualAccounts?: boolean | Prisma.User$virtualAccountsArgs<ExtArgs>
@@ -1073,6 +1120,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1086,6 +1134,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1099,9 +1148,10 @@ export type UserSelectScalar = {
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "phoneNumber" | "firstName" | "lastName" | "passwordHash" | "role" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "phoneNumber" | "firstName" | "lastName" | "passwordHash" | "role" | "status" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
   beneficiaries?: boolean | Prisma.User$beneficiariesArgs<ExtArgs>
@@ -1133,6 +1183,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     status: $Enums.UserStatus
     createdAt: Date
     updatedAt: Date
+    deletedAt: Date | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1571,6 +1622,7 @@ export interface UserFieldRefs {
   readonly status: Prisma.FieldRef<"User", 'UserStatus'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly deletedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     
 

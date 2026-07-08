@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { VirtualAccountsService } from './virtual-accounts.service.js';
 import { CreateVirtualAccountDto } from './dto/create-virtual-account.dto.js';
 import { UpdateVirtualAccountDto } from './dto/update-virtual-account.dto.js';
@@ -13,8 +13,8 @@ export class VirtualAccountsController {
   }
 
   @Get()
-  findAll() {
-    return this.virtualAccountsService.findAll();
+  findAll(@Query('includeArchived') includeArchived?: string) {
+    return this.virtualAccountsService.findAll(includeArchived === 'true');
   }
 
   @Get('nomba/:identifier')
@@ -56,5 +56,10 @@ export class VirtualAccountsController {
   @Patch(':id/close')
   closeLocal(@Param('id') id: string) {
     return this.virtualAccountsService.closeLocal(id);
+  }
+
+  @Patch(':id/archive')
+  archiveLocal(@Param('id') id: string) {
+    return this.virtualAccountsService.archiveLocal(id);
   }
 }

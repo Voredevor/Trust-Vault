@@ -64,6 +64,37 @@ export interface UpdateVirtualAccountRequest {
 	expectedAmount?: number;
 }
 
+export interface NombaBankLookupRequest {
+	bankCode: string;
+	accountNumber: string;
+}
+
+export interface NombaBankLookupData {
+	accountName?: string;
+	accountNumber?: string;
+	bankCode?: string;
+	bankName?: string;
+	[key: string]: unknown;
+}
+
+export interface NombaBankTransferRequest {
+	amount: number;
+	bankCode: string;
+	accountNumber: string;
+	accountName?: string;
+	narration?: string;
+	reference: string;
+	currency?: string;
+}
+
+export interface NombaBankTransferData {
+	reference?: string;
+	transactionReference?: string;
+	sessionId?: string;
+	status?: string;
+	[key: string]: unknown;
+}
+
 interface CachedNombaToken {
 	accessToken: string;
 	refreshToken: string;
@@ -181,6 +212,28 @@ export class NombaService {
 		return this.request<{ expired: boolean }>({
 			method: 'DELETE',
 			path: `/v1/accounts/virtual/${identifier}`,
+			accountScope: 'parent',
+		});
+	}
+
+	async lookupBankAccount(
+		payload: NombaBankLookupRequest,
+	): Promise<NombaApiResponse<NombaBankLookupData>> {
+		return this.request<NombaBankLookupData, NombaBankLookupRequest>({
+			method: 'POST',
+			path: '/v1/transfers/bank/lookup',
+			body: payload,
+			accountScope: 'parent',
+		});
+	}
+
+	async createBankTransfer(
+		payload: NombaBankTransferRequest,
+	): Promise<NombaApiResponse<NombaBankTransferData>> {
+		return this.request<NombaBankTransferData, NombaBankTransferRequest>({
+			method: 'POST',
+			path: '/v1/transfers/bank',
+			body: payload,
 			accountScope: 'parent',
 		});
 	}

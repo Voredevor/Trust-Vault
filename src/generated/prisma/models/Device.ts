@@ -467,10 +467,6 @@ export type EnumDeviceStatusFieldUpdateOperationsInput = {
   set?: $Enums.DeviceStatus
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type DeviceCreateWithoutUserInput = {
   id?: string
   name: string

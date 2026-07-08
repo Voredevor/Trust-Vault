@@ -17,7 +17,8 @@ describe('AppController', () => {
   describe('root', () => {
     it('should return the dashboard html', () => {
       expect(appController.getHello()).toContain('TrustVault Operator Console');
-      expect(appController.getHello()).toContain('GET /dashboard');
+      expect(appController.getHello()).toContain('Security Overview');
+      expect(appController.getHello()).toContain('Transfer Guard');
     });
   });
 });

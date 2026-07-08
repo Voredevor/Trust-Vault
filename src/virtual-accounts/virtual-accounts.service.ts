@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { NombaService } from '../nomba/nomba.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateVirtualAccountDto } from './dto/create-virtual-account.dto.js';
@@ -33,8 +33,9 @@ export class VirtualAccountsService {
     });
   }
 
-  findAll() {
+  findAll(includeArchived = false) {
     return this.prismaService.virtualAccount.findMany({
+      where: includeArchived ? undefined : { archivedAt: null },
       orderBy: {
         createdAt: 'desc',
       },
@@ -63,7 +64,9 @@ export class VirtualAccountsService {
     });
   }
 
-  updateLocal(id: string, updateVirtualAccountDto: UpdateVirtualAccountDto) {
+  async updateLocal(id: string, updateVirtualAccountDto: UpdateVirtualAccountDto) {
+    await this.assertLocalActionAllowed(id);
+
     return this.prismaService.virtualAccount.update({
       where: { id },
       data: {
@@ -74,17 +77,28 @@ export class VirtualAccountsService {
     });
   }
 
-  suspendLocal(id: string) {
+  async suspendLocal(id: string) {
+    await this.assertLocalActionAllowed(id);
+
     return this.prismaService.virtualAccount.update({
       where: { id },
       data: { status: 'INACTIVE' },
     });
   }
 
-  closeLocal(id: string) {
+  async closeLocal(id: string) {
+    await this.assertLocalActionAllowed(id);
+
     return this.prismaService.virtualAccount.update({
       where: { id },
       data: { status: 'CLOSED' },
+    });
+  }
+
+  archiveLocal(id: string) {
+    return this.prismaService.virtualAccount.update({
+      where: { id },
+      data: { archivedAt: new Date() },
     });
   }
 
@@ -123,5 +137,24 @@ export class VirtualAccountsService {
 
   async lookup(identifier: string) {
     return this.nombaService.fetchVirtualAccount(identifier);
+  }
+
+  private async assertLocalActionAllowed(id: string) {
+    const account = await this.prismaService.virtualAccount.findUnique({
+      where: { id },
+      select: { status: true, archivedAt: true },
+    });
+
+    if (!account) {
+      return;
+    }
+
+    if (account.status === 'CLOSED') {
+      throw new BadRequestException('Closed virtual accounts cannot receive new actions');
+    }
+
+    if (account.archivedAt) {
+      throw new BadRequestException('Archived virtual accounts cannot receive new actions');
+    }
   }
 }

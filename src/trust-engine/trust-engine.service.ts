@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 export type TrustRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-export type TrustDecisionAction = 'ALLOW' | 'REVIEW' | 'STEP_UP' | 'BLOCK';
+export type TrustDecisionAction = 'ALLOW' | 'REVIEW' | 'BLOCK';
 
 export interface TrustRiskSignal {
 	key: string;
@@ -11,10 +11,23 @@ export interface TrustRiskSignal {
 	impact: number;
 }
 
+export interface TrustMetrics {
+	successfulPayments: number;
+	failedPayments: number;
+	pendingPayments: number;
+	activeVirtualAccounts: number;
+	closedVirtualAccounts: number;
+	accountAgeDays: number;
+	customerStatus: string;
+	auditEvents: number;
+	recentActivityCount: number;
+}
+
 export interface TrustAssessment {
 	userId: string;
 	score: number;
 	riskLevel: TrustRiskLevel;
+	metrics: TrustMetrics;
 	signals: TrustRiskSignal[];
 	summary: string;
 }
@@ -52,7 +65,7 @@ export class TrustEngineService {
 			}),
 			this.prisma.transaction.findMany({
 				where: { userId },
-				select: { status: true, direction: true, occurredAt: true },
+				select: { status: true, direction: true, occurredAt: true, createdAt: true },
 			}),
 			this.prisma.virtualAccount.findMany({
 				where: { userId },
@@ -64,21 +77,24 @@ export class TrustEngineService {
 			}),
 		]);
 
+		const metrics = this.buildMetrics(user, transactions, virtualAccounts, auditLogs);
 		const signals: TrustRiskSignal[] = [];
-		let score = 70;
+		let score = 50;
 
-		score = this.applyUserStatusSignal(user.status, score, signals);
+		score = this.applyUserStatusSignal(metrics.customerStatus, score, signals);
+		score = this.applyAccountAgeSignal(metrics.accountAgeDays, score, signals);
 		score = this.applyDeviceSignals(devices, score, signals);
-		score = this.applyTransactionSignals(transactions, score, signals);
-		score = this.applyVirtualAccountSignals(virtualAccounts, score, signals);
+		score = this.applyTransactionSignals(metrics, score, signals);
+		score = this.applyVirtualAccountSignals(metrics, score, signals);
 		score = this.applyAuditSignals(auditLogs, score, signals);
-
+		score = this.applyRecentActivitySignals(metrics, score, signals);
 		score = this.clampScore(score);
 
 		return {
 			userId,
 			score,
 			riskLevel: this.resolveRiskLevel(score),
+			metrics,
 			signals,
 			summary: this.buildSummary(score, signals),
 		};
@@ -97,29 +113,97 @@ export class TrustEngineService {
 		};
 	}
 
+	private buildMetrics(
+		user: { status: { toString(): string }; createdAt: Date },
+		transactions: Array<{ status: { toString(): string }; direction: { toString(): string }; occurredAt: Date; createdAt: Date }>,
+		virtualAccounts: Array<{ status: { toString(): string } }>,
+		auditLogs: Array<{ action: string; severity: { toString(): string } }>,
+	): TrustMetrics {
+		const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+		const accountAgeDays = Math.max(
+			0,
+			Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (24 * 60 * 60 * 1000)),
+		);
+
+		return {
+			successfulPayments: transactions.filter(
+				(transaction) => String(transaction.status) === 'SUCCESS',
+			).length,
+			failedPayments: transactions.filter(
+				(transaction) => ['FAILED', 'REVERSED'].includes(String(transaction.status)),
+			).length,
+			pendingPayments: transactions.filter(
+				(transaction) => String(transaction.status) === 'PENDING',
+			).length,
+			activeVirtualAccounts: virtualAccounts.filter(
+				(virtualAccount) => String(virtualAccount.status) === 'ACTIVE',
+			).length,
+			closedVirtualAccounts: virtualAccounts.filter(
+				(virtualAccount) => String(virtualAccount.status) === 'CLOSED',
+			).length,
+			accountAgeDays,
+			customerStatus: String(user.status),
+			auditEvents: auditLogs.length,
+			recentActivityCount: transactions.filter((transaction) => {
+				const activityDate = new Date(transaction.occurredAt ?? transaction.createdAt).getTime();
+				return activityDate >= thirtyDaysAgo;
+			}).length,
+		};
+	}
+
 	private applyUserStatusSignal(
-		status: { toString(): string },
+		status: string,
 		score: number,
 		signals: TrustRiskSignal[],
 	): number {
-		const normalizedStatus = String(status);
-		if (normalizedStatus === 'ACTIVE') {
-			signals.push({ key: 'user.active', description: 'User account is active', impact: 15 });
+		if (status === 'ACTIVE') {
+			signals.push({ key: 'user.active', description: 'Customer status is active', impact: 15 });
 			return score + 15;
 		}
 
-		if (normalizedStatus === 'PENDING') {
-			signals.push({ key: 'user.pending', description: 'User account is pending review', impact: -15 });
+		if (status === 'PENDING') {
+			signals.push({ key: 'user.pending', description: 'Customer status is pending review', impact: -15 });
 			return score - 15;
 		}
 
-		if (normalizedStatus === 'SUSPENDED') {
-			signals.push({ key: 'user.suspended', description: 'User account is suspended', impact: -50 });
+		if (status === 'SUSPENDED') {
+			signals.push({ key: 'user.suspended', description: 'Customer status is suspended', impact: -50 });
 			return score - 50;
 		}
 
-		signals.push({ key: 'user.disabled', description: 'User account is disabled', impact: -80 });
+		signals.push({ key: 'user.disabled', description: 'Customer status is disabled', impact: -80 });
 		return score - 80;
+	}
+
+	private applyAccountAgeSignal(
+		accountAgeDays: number,
+		score: number,
+		signals: TrustRiskSignal[],
+	): number {
+		if (accountAgeDays >= 90) {
+			signals.push({
+				key: 'account.age.established',
+				description: `Customer account is established at ${accountAgeDays} day(s) old`,
+				impact: 10,
+			});
+			return score + 10;
+		}
+
+		if (accountAgeDays >= 30) {
+			signals.push({
+				key: 'account.age.maturing',
+				description: `Customer account is ${accountAgeDays} day(s) old`,
+				impact: 5,
+			});
+			return score + 5;
+		}
+
+		signals.push({
+			key: 'account.age.new',
+			description: `Customer account is new at ${accountAgeDays} day(s) old`,
+			impact: -5,
+		});
+		return score - 5;
 	}
 
 	private applyDeviceSignals(
@@ -135,7 +219,7 @@ export class TrustEngineService {
 			const impact = Math.min(trustedCount * 5, 15);
 			signals.push({
 				key: 'devices.trusted',
-				description: `${trustedCount} trusted device(s) linked to the account`,
+				description: `${trustedCount} trusted device(s) linked to this customer`,
 				impact,
 			});
 			score += impact;
@@ -145,7 +229,7 @@ export class TrustEngineService {
 			const impact = pendingCount * -8;
 			signals.push({
 				key: 'devices.pending',
-				description: `${pendingCount} pending device(s) still need review`,
+				description: `${pendingCount} pending device(s) still need review for this customer`,
 				impact,
 			});
 			score += impact;
@@ -155,7 +239,7 @@ export class TrustEngineService {
 			const impact = revokedCount * -20;
 			signals.push({
 				key: 'devices.revoked',
-				description: `${revokedCount} revoked device(s) were seen`,
+				description: `${revokedCount} revoked device(s) were seen for this customer`,
 				impact,
 			});
 			score += impact;
@@ -165,45 +249,35 @@ export class TrustEngineService {
 	}
 
 	private applyTransactionSignals(
-		transactions: Array<{ status: { toString(): string }; direction: { toString(): string } }>,
+		metrics: TrustMetrics,
 		score: number,
 		signals: TrustRiskSignal[],
 	): number {
-		const successfulCredits = transactions.filter(
-			(transaction) => String(transaction.status) === 'SUCCESS' && String(transaction.direction) === 'CREDIT',
-		).length;
-		const failedTransactions = transactions.filter(
-			(transaction) => ['FAILED', 'REVERSED'].includes(String(transaction.status)),
-		).length;
-		const pendingTransactions = transactions.filter(
-			(transaction) => String(transaction.status) === 'PENDING',
-		).length;
-
-		if (successfulCredits > 0) {
-			const impact = Math.min(successfulCredits * 2, 10);
+		if (metrics.successfulPayments > 0) {
+			const impact = Math.min(metrics.successfulPayments * 3, 18);
 			signals.push({
 				key: 'transactions.successful',
-				description: `${successfulCredits} successful incoming transaction(s)`,
+				description: `${metrics.successfulPayments} successful payment(s) for this customer`,
 				impact,
 			});
 			score += impact;
 		}
 
-		if (failedTransactions > 0) {
-			const impact = failedTransactions * -10;
+		if (metrics.failedPayments > 0) {
+			const impact = metrics.failedPayments * -12;
 			signals.push({
 				key: 'transactions.failed',
-				description: `${failedTransactions} failed or reversed transaction(s)`,
+				description: `${metrics.failedPayments} failed or reversed payment(s) for this customer`,
 				impact,
 			});
 			score += impact;
 		}
 
-		if (pendingTransactions > 0) {
-			const impact = pendingTransactions * -4;
+		if (metrics.pendingPayments > 0) {
+			const impact = metrics.pendingPayments * -4;
 			signals.push({
 				key: 'transactions.pending',
-				description: `${pendingTransactions} pending transaction(s) are unresolved`,
+				description: `${metrics.pendingPayments} pending payment(s) are unresolved for this customer`,
 				impact,
 			});
 			score += impact;
@@ -213,40 +287,28 @@ export class TrustEngineService {
 	}
 
 	private applyVirtualAccountSignals(
-		virtualAccounts: Array<{ status: { toString(): string } }>,
+		metrics: TrustMetrics,
 		score: number,
 		signals: TrustRiskSignal[],
 	): number {
-		const activeCount = virtualAccounts.filter((virtualAccount) => String(virtualAccount.status) === 'ACTIVE').length;
-		const inactiveCount = virtualAccounts.filter((virtualAccount) => String(virtualAccount.status) === 'INACTIVE').length;
-		const closedCount = virtualAccounts.filter((virtualAccount) => String(virtualAccount.status) === 'CLOSED').length;
-
-		if (activeCount > 0) {
-			const impact = Math.min(activeCount * 2, 6);
+		if (metrics.activeVirtualAccounts > 0) {
+			const impact = Math.min(metrics.activeVirtualAccounts * 4, 12);
 			signals.push({
 				key: 'virtual-accounts.active',
-				description: `${activeCount} active virtual account(s) available`,
+				description: `${metrics.activeVirtualAccounts} active virtual account(s) for this customer`,
 				impact,
 			});
 			score += impact;
 		}
 
-		if (inactiveCount > 0) {
-			signals.push({
-				key: 'virtual-accounts.inactive',
-				description: `${inactiveCount} inactive virtual account(s) were found`,
-				impact: inactiveCount * -5,
-			});
-			score += inactiveCount * -5;
-		}
-
-		if (closedCount > 0) {
+		if (metrics.closedVirtualAccounts > 0) {
+			const impact = metrics.closedVirtualAccounts * -8;
 			signals.push({
 				key: 'virtual-accounts.closed',
-				description: `${closedCount} closed virtual account(s) were found`,
-				impact: closedCount * -10,
+				description: `${metrics.closedVirtualAccounts} closed virtual account(s) for this customer`,
+				impact,
 			});
-			score += closedCount * -10;
+			score += impact;
 		}
 
 		return score;
@@ -294,6 +356,29 @@ export class TrustEngineService {
 		return score;
 	}
 
+	private applyRecentActivitySignals(
+		metrics: TrustMetrics,
+		score: number,
+		signals: TrustRiskSignal[],
+	): number {
+		if (metrics.recentActivityCount > 0) {
+			const impact = Math.min(metrics.recentActivityCount * 2, 8);
+			signals.push({
+				key: 'activity.recent',
+				description: `${metrics.recentActivityCount} recent payment event(s) in the last 30 days`,
+				impact,
+			});
+			return score + impact;
+		}
+
+		signals.push({
+			key: 'activity.none-recent',
+			description: 'No recent payment activity in the last 30 days',
+			impact: -5,
+		});
+		return score - 5;
+	}
+
 	private clampScore(score: number): number {
 		return Math.max(0, Math.min(100, Math.round(score)));
 	}
@@ -319,38 +404,26 @@ export class TrustEngineService {
 			return 'ALLOW';
 		}
 
-		if (score >= 65) {
+		if (score >= 55) {
 			return 'REVIEW';
-		}
-
-		if (score >= 40) {
-			return 'STEP_UP';
 		}
 
 		return 'BLOCK';
 	}
 
 	private buildDecisionReason(action: TrustDecisionAction, assessment: TrustAssessment): string {
-		const strongestSignal = assessment.signals.length
-			? [...assessment.signals].sort(
-				(leftSignal, rightSignal) => Math.abs(rightSignal.impact) - Math.abs(leftSignal.impact),
-			)[0]
-			: null;
-
-		if (!strongestSignal) {
-			return `No negative trust signals found. Trust score ${assessment.score} supports ${action.toLowerCase()}.`;
-		}
-
-		const signalSummary = assessment.signals
-			.map((signal) => `${signal.description} (${signal.impact >= 0 ? '+' : ''}${signal.impact})`)
-			.join('; ');
+		const signalSummary = assessment.signals.length
+			? assessment.signals
+				.map((signal) => `${signal.description} (${signal.impact >= 0 ? '+' : ''}${signal.impact})`)
+				.join('; ')
+			: 'no risk signals were found for this customer';
 
 		return `Trust score ${assessment.score} leads to ${action.toLowerCase()} for this customer based on: ${signalSummary}.`;
 	}
 
 	private buildSummary(score: number, signals: TrustRiskSignal[]): string {
 		if (!signals.length) {
-			return `Trust score ${score}: no notable trust signals found.`;
+			return `Trust score ${score}: no notable trust signals found for this customer.`;
 		}
 
 		const signalSummary = signals

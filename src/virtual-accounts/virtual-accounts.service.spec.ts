@@ -121,6 +121,9 @@ describe('VirtualAccountsService', () => {
 
     expect(result).toEqual([{ id: 'virtual-account-id' }]);
     expect(prismaService.virtualAccount.findMany).toHaveBeenCalledWith({
+      where: {
+        archivedAt: null,
+      },
       orderBy: {
         createdAt: 'desc',
       },

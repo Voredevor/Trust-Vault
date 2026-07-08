@@ -89,8 +89,10 @@ model User {
   auditLogs     AuditLog[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
 
   @@index([status])
+  @@index([deletedAt])
 }
 
 model Device {
@@ -145,8 +147,10 @@ model VirtualAccount {
   transactions      Transaction[]
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  archivedAt        DateTime?
 
   @@index([userId, status])
+  @@index([archivedAt])
 }
 
 model Transaction {

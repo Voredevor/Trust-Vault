@@ -7,5 +7,6 @@ import { TrustEngineService } from './trust-engine.service.js';
   imports: [PrismaModule],
   controllers: [TrustEngineController],
   providers: [TrustEngineService],
+  exports: [TrustEngineService],
 })
 export class TrustEngineModule {}

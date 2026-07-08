@@ -25,10 +25,16 @@ export class UsersService {
     });
   }
 
-  findAll() {
+  findAll(includeArchived = false) {
     return this.prisma.user.findMany({
+      where: includeArchived ? undefined : { deletedAt: null },
       orderBy: { createdAt: 'desc' },
-      select: this.userSelect,
+      select: {
+        ...this.userSelect,
+        virtualAccounts: {
+          select: { id: true, status: true },
+        },
+      },
     });
   }
 
@@ -70,8 +76,17 @@ export class UsersService {
   }
 
   remove(id: string) {
-    return this.prisma.user.delete({
+    return this.prisma.user.update({
       where: { id },
+      data: { deletedAt: new Date() },
+      select: this.userSelect,
+    });
+  }
+
+  restore(id: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { deletedAt: null },
       select: this.userSelect,
     });
   }
@@ -84,6 +99,7 @@ export class UsersService {
     lastName: true,
     role: true,
     status: true,
+    deletedAt: true,
     createdAt: true,
     updatedAt: true,
   } as const;

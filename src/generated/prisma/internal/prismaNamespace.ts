@@ -977,7 +977,8 @@ export const UserScalarFieldEnum = {
   role: 'role',
   status: 'status',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -1030,7 +1031,8 @@ export const VirtualAccountScalarFieldEnum = {
   status: 'status',
   metadata: 'metadata',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  archivedAt: 'archivedAt'
 } as const
 
 export type VirtualAccountScalarFieldEnum = (typeof VirtualAccountScalarFieldEnum)[keyof typeof VirtualAccountScalarFieldEnum]

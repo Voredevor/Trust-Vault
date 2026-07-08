@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { TransfersService } from './transfers.service.js';
 import { CreateTransferDto } from './dto/create-transfer.dto.js';
-import { UpdateTransferDto } from './dto/update-transfer.dto.js';
 
 @Controller('transfers')
 export class TransfersController {
@@ -19,16 +18,6 @@ export class TransfersController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.transfersService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTransferDto: UpdateTransferDto) {
-    return this.transfersService.update(+id, updateTransferDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.transfersService.remove(+id);
+    return this.transfersService.findOne(id);
   }
 }

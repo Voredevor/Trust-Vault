@@ -231,6 +231,9 @@ export class AppService {
       border-radius: var(--radius);
     }
 
+    .click-row { cursor: pointer; }
+    .click-row:hover td { background: rgba(77, 183, 255, 0.06); }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -295,6 +298,27 @@ export class AppService {
       gap: 10px;
     }
 
+    .drawer {
+      margin-top: 14px;
+      border-left: 3px solid var(--accent-2);
+    }
+
+    .status-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 10px;
+    }
+
+    .status-row:last-child { border-bottom: 0; padding-bottom: 0; }
+
     pre {
       margin: 0;
       white-space: pre-wrap;
@@ -345,6 +369,8 @@ export class AppService {
       ['customers', 'Customers'],
       ['virtualAccounts', 'Virtual Accounts'],
       ['transactions', 'Transactions'],
+      ['transferGuard', 'Transfer Guard'],
+      ['securityOverview', 'Security Overview'],
       ['webhooks', 'Webhooks'],
       ['trustEngine', 'Trust Engine'],
       ['audit', 'Audit Logs'],
@@ -356,6 +382,8 @@ export class AppService {
       customers: ['Customers', 'Search, create, and inspect TrustVault customers.'],
       virtualAccounts: ['Virtual Accounts', 'Manage dedicated virtual accounts and Nomba-backed actions.'],
       transactions: ['Transactions', 'Review incoming, outgoing, pending, successful, and failed payments.'],
+      transferGuard: ['Transfer Guard', 'Approve, review, or block outgoing transfers before they reach Nomba.'],
+      securityOverview: ['Security Overview', 'Live payment security posture from existing TrustVault records.'],
       webhooks: ['Webhooks', 'Live event monitor for signed payment and transfer events.'],
       trustEngine: ['Trust Engine', 'Inspect customer trust scores, decisions, and risk signals.'],
       audit: ['Audit Logs', 'Trace administrative and security-relevant actions.'],
@@ -366,6 +394,7 @@ export class AppService {
       customers: [],
       virtualAccounts: [],
       transactions: [],
+      transfers: [],
       webhooks: [],
       audit: [],
       selectedCustomerId: '',
@@ -405,9 +434,31 @@ export class AppService {
     const txNombaTransaction = (tx) => txPayload(tx)?.data?.transaction || {};
     const txNombaCustomer = (tx) => txPayload(tx)?.data?.customer || {};
     const txSenderName = (tx) => txNombaCustomer(tx).senderName || tx.metadata?.senderName || '--';
+    const txReceiverName = (tx) => txNombaTransaction(tx).aliasAccountName || tx.virtualAccount?.accountName || tx.virtualAccount?.accountNumber || '--';
     const txType = (tx) => txNombaTransaction(tx).type || tx.metadata?.eventType || tx.direction || '--';
     const txSessionId = (tx) => txNombaTransaction(tx).sessionId || tx.metadata?.sessionId || '--';
+    const txReference = (tx) => tx.reference || txNombaTransaction(tx).transactionId || tx.metadata?.reference || '--';
     const txVirtualAccountNumber = (tx) => tx.virtualAccount?.accountNumber || txNombaTransaction(tx).aliasAccountNumber || '--';
+    const webhookTransaction = (event) => event?.payload?.data?.transaction || {};
+    const webhookCustomer = (event) => event?.payload?.data?.customer || {};
+    const webhookAmount = (event) => webhookTransaction(event).transactionAmount || event?.payload?.amount || '--';
+    const webhookAmountLabel = (event) => Number.isFinite(Number(webhookAmount(event))) ? money(webhookAmount(event), 'NGN') : '--';
+    const webhookSender = (event) => webhookCustomer(event).senderName || '--';
+    const webhookVirtualAccount = (event) => webhookTransaction(event).aliasAccountNumber || event?.payload?.accountNumber || '--';
+    const webhookTransactionId = (event) => webhookTransaction(event).transactionId || event?.payload?.reference || event?.payload?.transactionReference || '--';
+    const webhookRequestId = (event) => event?.payload?.requestId || '--';
+    const auditMetadata = (log) => log?.metadata || {};
+    const auditLinkedTransaction = (log) => log.resourceType === 'Transaction' ? log.resourceId : auditMetadata(log).transactionId || auditMetadata(log).transactionReference || '--';
+    const auditLinkedVirtualAccount = (log) => log.resourceType === 'VirtualAccount' ? log.resourceId : auditMetadata(log).virtualAccountId || auditMetadata(log).virtualAccountNumber || auditMetadata(log).recipient?.accountNumber || '--';
+    const auditWebhookReference = (log) => log.resourceType === 'WebhookEvent' ? log.resourceId : auditMetadata(log).webhookEventId || auditMetadata(log).requestId || '--';
+    const auditCategory = (log) => {
+      const source = [log.action, log.resourceType, JSON.stringify(log.metadata || {})].join(' ').toLowerCase();
+      if (source.includes('webhook') || source.includes('nomba')) return 'Webhook';
+      if (source.includes('transfer')) return 'Transfer';
+      if (source.includes('customer') || source.includes('user')) return 'Customer';
+      if (['HIGH', 'CRITICAL'].includes(log.severity)) return 'Security';
+      return 'System';
+    };
     const customerCode = (userOrId) => {
       const id = typeof userOrId === 'string' ? userOrId : userOrId?.id;
       return id ? 'TV-' + id.replace(/-/g, '').slice(0, 8).toUpperCase() : '--';
@@ -416,8 +467,10 @@ export class AppService {
       const suffix = userId ? userId.replace(/-/g, '').slice(0, 6) : Math.random().toString(36).slice(2, 8);
       return 'tv-' + suffix + '-' + Date.now().toString(36);
     };
-    const tone = (value) => ['SUCCESS', 'ACTIVE', 'TRUSTED', 'ALLOW', true].includes(value) ? 'good' : ['PENDING', 'REVIEW', 'STEP_UP'].includes(value) ? 'warn' : ['FAILED', 'REVERSED', 'SUSPENDED', 'REVOKED', 'BLOCK', false].includes(value) ? 'bad' : '';
+    const tone = (value) => ['SUCCESS', 'ACTIVE', 'TRUSTED', 'ALLOW', 'LOW', true].includes(value) ? 'good' : ['PENDING', 'REVIEW', 'STEP_UP', 'MEDIUM'].includes(value) ? 'warn' : ['FAILED', 'REVERSED', 'SUSPENDED', 'REVOKED', 'BLOCK', 'HIGH', 'CRITICAL', false].includes(value) ? 'bad' : '';
     const badge = (value) => '<span class="badge ' + tone(value) + '">' + html(value) + '</span>';
+    const statusRow = (label, value, status) => '<div class="status-row"><span>' + html(label) + '</span><strong>' + html(value) + '</strong>' + badge(status || 'ACTIVE') + '</div>';
+    const chartBar = (label, value, max) => '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;gap:10px;"><span>' + html(label) + '</span><strong>' + html(value) + '</strong></div><div style="height:8px;border:1px solid var(--line);border-radius:999px;overflow:hidden;"><div style="width:' + (max ? Math.max(4, Math.round((Number(value) / max) * 100)) : 0) + '%;height:100%;background:var(--accent-2);"></div></div></div>';
 
     function setPage(id) {
       const copy = pageCopy[id] || pageCopy.dashboard;
@@ -456,6 +509,8 @@ export class AppService {
         customers: renderCustomers,
         virtualAccounts: renderVirtualAccounts,
         transactions: renderTransactions,
+        transferGuard: renderTransferGuard,
+        securityOverview: renderSecurityOverview,
         webhooks: renderWebhooks,
         trustEngine: renderTrustEngine,
         audit: renderAudit,
@@ -497,16 +552,17 @@ export class AppService {
       const page = document.getElementById('page');
       page.innerHTML = loading('Loading customers...');
       try {
-        state.customers = await api('/users');
+        state.customers = await api('/users?includeArchived=true');
         page.innerHTML = [
           '<div class="split">',
           customerForm(),
-          '<div class="card"><h2>Customer List</h2><div class="toolbar"><input id="customerSearch" placeholder="Search customer" /></div><div id="customerTable"></div></div>',
+          '<div class="card"><h2>Customer List</h2><div class="toolbar"><input id="customerSearch" placeholder="Search customer" /><select id="customerArchiveFilter"><option value="active">Active</option><option value="archived">Archived</option><option value="all">All</option></select></div><div id="customerTable"></div></div>',
           '</div>',
           '<div class="card span-12" style="margin-top:14px;"><h2>Customer Profile</h2><div id="customerProfile">' + empty('Select a customer to view profile details.') + '</div></div>'
         ].join('');
         document.getElementById('createCustomerForm').addEventListener('submit', createCustomer);
         document.getElementById('customerSearch').addEventListener('input', renderCustomerTable);
+        document.getElementById('customerArchiveFilter').addEventListener('change', renderCustomerTable);
         renderCustomerTable();
       } catch (error) {
         page.innerHTML = errorCard(error);
@@ -537,7 +593,7 @@ export class AppService {
         await api('/users', { method: 'POST', body: JSON.stringify(payload) });
         form.reset();
         result.innerHTML = '<div class="empty">Customer created.</div>';
-        state.customers = await api('/users');
+        state.customers = await api('/users?includeArchived=true');
         renderCustomerTable();
       } catch (error) {
         result.innerHTML = errorCard(error);
@@ -546,21 +602,71 @@ export class AppService {
 
     function renderCustomerTable() {
       const search = (document.getElementById('customerSearch')?.value || '').toLowerCase();
-      const rows = state.customers.filter((customer) => JSON.stringify(customer).toLowerCase().includes(search));
+      const archiveFilter = document.getElementById('customerArchiveFilter')?.value || 'active';
+      const rows = state.customers.filter((customer) => {
+        const matchesSearch = JSON.stringify(customer).toLowerCase().includes(search);
+        const archived = Boolean(customer.deletedAt);
+        const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'archived' ? archived : !archived);
+        return matchesSearch && matchesArchive;
+      });
       document.getElementById('customerTable').innerHTML = rows.length ? [
-        '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th></th></tr></thead><tbody>',
+        '<div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead><tbody>',
         rows.map((customer) => [
           '<tr>',
           '<td>' + html(customerCode(customer)) + '</td>',
           '<td>' + html(person(customer)) + '</td>',
           '<td>' + html(customer.email) + '</td>',
           '<td>' + html(customer.phoneNumber || '--') + '</td>',
-          '<td>' + badge(customer.status) + '</td>',
-          '<td><button class="btn" onclick="loadCustomerProfile(\'' + customer.id + '\')">View</button></td>',
+          '<td>' + badge(customer.deletedAt ? 'ARCHIVED' : customer.status) + '</td>',
+          '<td>' + customerActions(customer) + '</td>',
           '</tr>'
         ].join('')).join(''),
         '</tbody></table></div>'
       ].join('') : empty('No customers found.');
+    }
+
+    function customerActions(customer) {
+      return [
+        '<button class="btn" onclick="loadCustomerProfile(\'' + customer.id + '\')">View</button>',
+        customer.deletedAt ? '' : '<button class="btn" onclick="editCustomer(\'' + customer.id + '\')">Edit</button>',
+        customer.deletedAt ? '<button class="btn primary" onclick="restoreCustomer(\'' + customer.id + '\')">Restore</button>' : '<button class="btn danger" onclick="archiveCustomer(\'' + customer.id + '\')">Archive</button>'
+      ].filter(Boolean).join(' ');
+    }
+
+    async function editCustomer(id) {
+      const customer = state.customers.find((item) => item.id === id);
+      if (!customer) return;
+      const firstName = prompt('First name', customer.firstName || '');
+      if (firstName === null) return;
+      const lastName = prompt('Last name', customer.lastName || '');
+      if (lastName === null) return;
+      const email = prompt('Email', customer.email || '');
+      if (email === null) return;
+      const phoneNumber = prompt('Phone number', customer.phoneNumber || '');
+      if (phoneNumber === null) return;
+      await api('/users/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        body: JSON.stringify({ firstName, lastName, email, phoneNumber })
+      });
+      state.customers = await api('/users?includeArchived=true');
+      renderCustomerTable();
+    }
+
+    async function archiveCustomer(id) {
+      const customer = state.customers.find((item) => item.id === id);
+      const activeAccounts = (customer?.virtualAccounts || []).filter((account) => account.status === 'ACTIVE');
+      if (activeAccounts.length && !confirm('This customer owns active virtual accounts. Deleting will archive the customer while preserving payment history.')) {
+        return;
+      }
+      await api('/users/' + encodeURIComponent(id), { method: 'DELETE' });
+      state.customers = await api('/users?includeArchived=true');
+      renderCustomerTable();
+    }
+
+    async function restoreCustomer(id) {
+      await api('/users/' + encodeURIComponent(id) + '/restore', { method: 'PATCH' });
+      state.customers = await api('/users?includeArchived=true');
+      renderCustomerTable();
     }
 
     async function loadCustomerProfile(id) {
@@ -593,15 +699,16 @@ export class AppService {
       const page = document.getElementById('page');
       page.innerHTML = loading('Loading virtual accounts...');
       try {
-        const [accounts, customers] = await Promise.all([api('/virtual-accounts'), api('/users')]);
+        const [accounts, customers] = await Promise.all([api('/virtual-accounts?includeArchived=true'), api('/users')]);
         state.virtualAccounts = accounts;
         state.customers = customers;
         page.innerHTML = [
           '<div class="card"><h2>Virtual Accounts</h2>',
-          '<div class="toolbar"><input id="vaSearch" placeholder="Search account" /><button class="btn primary" onclick="openVirtualAccountCreate()">Create</button><input id="nombaLookup" placeholder="Nomba account ref or number" /><button class="btn" onclick="lookupNombaAccount()">Lookup</button></div>',
+          '<div class="toolbar"><input id="vaSearch" placeholder="Search account" /><select id="vaStatusFilter"><option value="all">All</option><option value="ACTIVE">Active</option><option value="INACTIVE">Suspended</option><option value="CLOSED">Closed</option></select><button class="btn primary" onclick="openVirtualAccountCreate()">Create</button><input id="nombaLookup" placeholder="Nomba account ref or number" /><button class="btn" onclick="lookupNombaAccount()">Lookup</button></div>',
           '<div id="vaAction"></div><div id="vaTable"></div></div>'
         ].join('');
         document.getElementById('vaSearch').addEventListener('input', renderVirtualAccountTable);
+        document.getElementById('vaStatusFilter').addEventListener('change', renderVirtualAccountTable);
         renderVirtualAccountTable();
       } catch (error) {
         page.innerHTML = errorCard(error);
@@ -610,7 +717,12 @@ export class AppService {
 
     function renderVirtualAccountTable() {
       const search = (document.getElementById('vaSearch')?.value || '').toLowerCase();
-      const rows = state.virtualAccounts.filter((account) => JSON.stringify(account).toLowerCase().includes(search));
+      const statusFilter = document.getElementById('vaStatusFilter')?.value || 'all';
+      const rows = state.virtualAccounts.filter((account) => {
+        const matchesSearch = JSON.stringify(account).toLowerCase().includes(search);
+        const matchesStatus = statusFilter === 'all' || account.status === statusFilter;
+        return matchesSearch && matchesStatus && !account.archivedAt;
+      });
       document.getElementById('vaTable').innerHTML = rows.length ? [
         '<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Account</th><th>Number</th><th>Reference</th><th>Status</th><th>Actions</th></tr></thead><tbody>',
         rows.map((account) => [
@@ -619,16 +731,30 @@ export class AppService {
           '<td>' + html(virtualAccountName(account)) + '</td>',
           '<td>' + html(account.accountNumber || '--') + '</td>',
           '<td>' + html(account.providerReference || '--') + '</td>',
-          '<td>' + badge(account.status) + '</td>',
-          '<td><button class="btn" onclick="renameAccount(\'' + account.id + '\')">Rename</button> <button class="btn" onclick="suspendAccount(\'' + account.id + '\')">Suspend</button> <button class="btn danger" onclick="closeAccount(\'' + account.id + '\')">Close</button></td>',
+          '<td>' + badge(account.status === 'INACTIVE' ? 'SUSPENDED' : account.status) + '</td>',
+          '<td>' + virtualAccountActions(account) + '</td>',
           '</tr>'
         ].join('')).join(''),
         '</tbody></table></div>'
       ].join('') : empty('No virtual accounts found.');
     }
 
+    function virtualAccountActions(account) {
+      if (account.status === 'CLOSED' || account.archivedAt) {
+        return '<button class="btn" onclick="viewVirtualAccount(\'' + account.id + '\')">View</button>';
+      }
+
+      return [
+        '<button class="btn" onclick="viewVirtualAccount(\'' + account.id + '\')">View</button>',
+        '<button class="btn" onclick="renameAccount(\'' + account.id + '\')">Rename</button>',
+        '<button class="btn" onclick="suspendAccount(\'' + account.id + '\')">Suspend</button>',
+        '<button class="btn danger" onclick="closeAccount(\'' + account.id + '\')">Close</button>',
+        '<button class="btn" onclick="archiveVirtualAccount(\'' + account.id + '\')">Archive</button>'
+      ].join(' ');
+    }
+
     function openVirtualAccountCreate() {
-      const customerOptions = state.customers.map((customer) =>
+      const customerOptions = state.customers.filter((customer) => !customer.deletedAt).map((customer) =>
         '<option value="' + html(customer.id) + '">' + html(customerCode(customer) + ' - ' + person(customer)) + '</option>'
       ).join('');
       document.getElementById('vaAction').innerHTML = [
@@ -678,6 +804,11 @@ export class AppService {
       await renderVirtualAccounts();
     }
 
+    async function viewVirtualAccount(id) {
+      const account = state.virtualAccounts.find((item) => item.id === id) || await api('/virtual-accounts/' + encodeURIComponent(id));
+      document.getElementById('vaAction').innerHTML = '<div class="card"><h3>Virtual Account</h3><pre>' + html(JSON.stringify(account, null, 2)) + '</pre></div>';
+    }
+
     async function suspendAccount(id) {
       await api('/virtual-accounts/' + id + '/suspend', { method: 'PATCH' });
       await renderVirtualAccounts();
@@ -688,13 +819,102 @@ export class AppService {
       await renderVirtualAccounts();
     }
 
+    async function archiveVirtualAccount(id) {
+      await api('/virtual-accounts/' + id + '/archive', { method: 'PATCH' });
+      await renderVirtualAccounts();
+    }
+
+    async function renderTransferGuard() {
+      const page = document.getElementById('page');
+      page.innerHTML = loading('Loading Transfer Guard...');
+      try {
+        const [customers, accounts, transfers] = await Promise.all([
+          api('/users'),
+          api('/virtual-accounts'),
+          api('/transfers')
+        ]);
+        state.customers = customers;
+        state.virtualAccounts = accounts;
+        state.transfers = transfers;
+        const customerOptions = customers.map((customer) =>
+          '<option value="' + html(customer.id) + '">' + html(customerCode(customer) + ' - ' + person(customer)) + '</option>'
+        ).join('');
+        const accountOptions = accounts.map((account) =>
+          '<option value="' + html(account.id) + '">' + html((account.accountNumber || account.providerReference || account.id) + ' - ' + virtualAccountName(account)) + '</option>'
+        ).join('');
+        page.innerHTML = [
+          '<div class="split">',
+          '<div class="card"><h2>Transfer Money</h2><form class="form" id="transferGuardForm">',
+          '<select name="userId" required><option value="">Customer</option>' + customerOptions + '</select>',
+          '<select name="virtualAccountId"><option value="">Virtual Account</option>' + accountOptions + '</select>',
+          '<input name="recipientBank" placeholder="Recipient Bank" required />',
+          '<input name="recipientBankCode" placeholder="Recipient Bank Code" required />',
+          '<input name="recipientAccount" placeholder="Recipient Account" required />',
+          '<input name="amount" type="number" min="1" step="0.01" placeholder="Amount" required />',
+          '<input name="narration" placeholder="Narration" />',
+          '<button class="btn primary" type="submit">Run Transfer Guard</button>',
+          '</form><div id="transferGuardResult"></div></div>',
+          '<div class="card"><h2>Recent Guarded Transfers</h2>' + transactionTable(transfers || [], 8, transfers.length) + '</div>',
+          '</div>'
+        ].join('');
+        document.getElementById('transferGuardForm').addEventListener('submit', submitTransferGuard);
+      } catch (error) {
+        page.innerHTML = errorCard(error);
+      }
+    }
+
+    async function submitTransferGuard(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const target = document.getElementById('transferGuardResult');
+      const payload = Object.fromEntries(new FormData(form).entries());
+      if (!payload.virtualAccountId) {
+        delete payload.virtualAccountId;
+      }
+      target.innerHTML = loading('Checking recipient and running Trust Engine...');
+      try {
+        const result = await api('/transfers', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        target.innerHTML = [
+          '<div class="card" style="margin-top:14px;"><h3>Decision</h3>',
+          badge(result.decision),
+          '<p>' + html(result.message) + '</p>',
+          '<h3>Risk Score</h3><p>' + html(result.riskScore) + '</p>',
+          '<h3>Reasons</h3>' + smallList(result.reasons || [], (reason) => html(reason)),
+          '<h3>Recipient Lookup</h3><pre>' + html(JSON.stringify(result.accountLookup || {}, null, 2)) + '</pre>',
+          '</div>'
+        ].join('');
+        if (result.decision === 'ALLOW') {
+          form.reset();
+        }
+      } catch (error) {
+        target.innerHTML = errorCard(error);
+      }
+    }
+
     async function renderTransactions() {
       const page = document.getElementById('page');
       page.innerHTML = loading('Loading transactions...');
       try {
-        state.transactions = await api('/transactions');
-        page.innerHTML = '<div class="card"><h2>Transactions</h2><div class="toolbar"><select id="txFilter"><option value="">All</option><option value="CREDIT">Incoming</option><option value="DEBIT">Outgoing</option><option value="SUCCESS">Successful</option><option value="FAILED">Failed</option><option value="PENDING">Pending</option></select></div><div id="txTable"></div></div>';
-        document.getElementById('txFilter').addEventListener('change', renderTransactionFilter);
+        const [transactions, customers] = await Promise.all([api('/transactions'), api('/users')]);
+        state.transactions = transactions;
+        state.customers = customers;
+        const customerOptions = transactionCustomerOptions();
+        page.innerHTML = [
+          '<div class="card"><h2>Transactions</h2>',
+          '<div class="toolbar">',
+          '<select id="txDirectionFilter"><option value="">All Directions</option><option value="CREDIT">Incoming</option><option value="DEBIT">Outgoing</option></select>',
+          '<select id="txStatusFilter"><option value="">All Statuses</option><option value="SUCCESS">Successful</option><option value="PENDING">Pending</option><option value="FAILED">Failed</option></select>',
+          '<input id="txStartDate" type="date" aria-label="Start date" />',
+          '<input id="txEndDate" type="date" aria-label="End date" />',
+          '<select id="txCustomerFilter"><option value="">All Customers</option>' + customerOptions + '</select>',
+          '</div><div id="txTable"></div><div id="txDetail"></div></div>'
+        ].join('');
+        ['txDirectionFilter', 'txStatusFilter', 'txStartDate', 'txEndDate', 'txCustomerFilter'].forEach((id) => {
+          document.getElementById(id).addEventListener('change', renderTransactionFilter);
+        });
         renderTransactionFilter();
       } catch (error) {
         page.innerHTML = errorCard(error);
@@ -702,9 +922,28 @@ export class AppService {
     }
 
     function renderTransactionFilter() {
-      const filter = document.getElementById('txFilter').value;
-      const rows = filter ? state.transactions.filter((tx) => tx.direction === filter || tx.status === filter) : state.transactions;
+      const direction = document.getElementById('txDirectionFilter')?.value || '';
+      const status = document.getElementById('txStatusFilter')?.value || '';
+      const startDate = document.getElementById('txStartDate')?.value || '';
+      const endDate = document.getElementById('txEndDate')?.value || '';
+      const customerId = document.getElementById('txCustomerFilter')?.value || '';
+      const startTime = startDate ? new Date(startDate + 'T00:00:00').getTime() : null;
+      const endTime = endDate ? new Date(endDate + 'T23:59:59').getTime() : null;
+      const rows = state.transactions.filter((tx) => {
+        const txTime = new Date(tx.createdAt || tx.occurredAt).getTime();
+        const txCustomerId = tx.user?.id || tx.userId || '';
+        const matchesDirection = !direction || tx.direction === direction;
+        const matchesStatus = !status || tx.status === status;
+        const matchesStart = !startTime || txTime >= startTime;
+        const matchesEnd = !endTime || txTime <= endTime;
+        const matchesCustomer = !customerId || txCustomerId === customerId;
+        return matchesDirection && matchesStatus && matchesStart && matchesEnd && matchesCustomer;
+      });
       document.getElementById('txTable').innerHTML = transactionTable(rows, undefined, state.transactions.length);
+      const detail = document.getElementById('txDetail');
+      if (detail) {
+        detail.innerHTML = '';
+      }
     }
 
     function transactionTable(rows, limit, totalCount) {
@@ -712,23 +951,26 @@ export class AppService {
       const knownTotal = typeof totalCount === 'number' ? totalCount : rows.length;
       if (!items.length && knownTotal > 0) {
         return [
-          '<div class="table-wrap"><table><thead><tr><th>Amount</th><th>Sender</th><th>Narration</th><th>Type</th><th>Session ID</th><th>Created</th><th>Virtual Account</th><th>Customer</th><th>Status</th></tr></thead><tbody>',
-          '<tr><td colspan="9">No matching transactions.</td></tr>',
+          '<div class="table-wrap"><table><thead><tr><th>Amount</th><th>Currency</th><th>Direction</th><th>Sender</th><th>Receiver</th><th>Narration</th><th>Reference</th><th>Session ID</th><th>Virtual Account</th><th>Customer</th><th>Created Time</th><th>Payment Status</th></tr></thead><tbody>',
+          '<tr><td colspan="12">No matching transactions.</td></tr>',
           '</tbody></table></div>'
         ].join('');
       }
       return items.length ? [
-        '<div class="table-wrap"><table><thead><tr><th>Amount</th><th>Sender</th><th>Narration</th><th>Type</th><th>Session ID</th><th>Created</th><th>Virtual Account</th><th>Customer</th><th>Status</th></tr></thead><tbody>',
+        '<div class="table-wrap"><table><thead><tr><th>Amount</th><th>Currency</th><th>Direction</th><th>Sender</th><th>Receiver</th><th>Narration</th><th>Reference</th><th>Session ID</th><th>Virtual Account</th><th>Customer</th><th>Created Time</th><th>Payment Status</th></tr></thead><tbody>',
         items.map((tx) => [
-          '<tr>',
-          '<td>' + money(tx.amount, tx.currency) + '</td>',
+          '<tr class="click-row" onclick="openTransactionDetail(\'' + html(tx.id) + '\')">',
+          '<td>' + html(Number(tx.amount || 0).toLocaleString()) + '</td>',
+          '<td>' + html(tx.currency || 'NGN') + '</td>',
+          '<td>' + badge(tx.direction) + '<br /><span class="badge">' + html(txType(tx)) + '</span></td>',
           '<td>' + html(txSenderName(tx)) + '</td>',
-          '<td>' + html(tx.narration || txNombaTransaction(tx).narration || '--') + '<br /><span class="badge">' + html(tx.reference) + '</span></td>',
-          '<td>' + html(txType(tx)) + '</td>',
+          '<td>' + html(txReceiverName(tx)) + '</td>',
+          '<td>' + html(tx.narration || txNombaTransaction(tx).narration || '--') + '</td>',
+          '<td>' + html(txReference(tx)) + '</td>',
           '<td>' + html(txSessionId(tx)) + '</td>',
-          '<td>' + date(tx.createdAt || tx.occurredAt) + '</td>',
           '<td>' + html(txVirtualAccountNumber(tx)) + '</td>',
           '<td>' + html(person(tx.user)) + '</td>',
+          '<td>' + date(tx.createdAt || tx.occurredAt) + '</td>',
           '<td>' + badge(tx.status) + '</td>',
           '</tr>'
         ].join('')).join(''),
@@ -736,24 +978,205 @@ export class AppService {
       ].join('') : empty('No transactions found.');
     }
 
-    async function renderWebhooks() {
+    function transactionCustomerOptions() {
+      const known = new Map();
+      state.customers.forEach((customer) => known.set(customer.id, customer));
+      state.transactions.forEach((tx) => {
+        if (tx.user?.id) {
+          known.set(tx.user.id, tx.user);
+        }
+      });
+      return Array.from(known.values()).map((customer) =>
+        '<option value="' + html(customer.id) + '">' + html(customerCode(customer) + ' - ' + person(customer)) + '</option>'
+      ).join('');
+    }
+
+    function openTransactionDetail(id) {
+      const detail = document.getElementById('txDetail');
+      if (!detail) return;
+      const tx = state.transactions.find((item) => item.id === id);
+      if (!tx) return;
+      detail.innerHTML = [
+        '<div class="card drawer"><h2>Transaction Detail</h2><div class="grid">',
+        '<div class="card span-4"><h3>Amount</h3><p>' + money(tx.amount, tx.currency) + '</p></div>',
+        '<div class="card span-4"><h3>Payment Status</h3>' + badge(tx.status) + '</div>',
+        '<div class="card span-4"><h3>Direction</h3>' + badge(tx.direction) + '</div>',
+        '<div class="card span-6"><h3>Sender</h3><p>' + html(txSenderName(tx)) + '</p></div>',
+        '<div class="card span-6"><h3>Receiver</h3><p>' + html(txReceiverName(tx)) + '</p></div>',
+        '<div class="card span-6"><h3>Reference</h3><p>' + html(txReference(tx)) + '<br />' + html(txSessionId(tx)) + '</p></div>',
+        '<div class="card span-6"><h3>Virtual Account</h3><p>' + html(txVirtualAccountNumber(tx)) + '<br />' + html(person(tx.user)) + '</p></div>',
+        '<div class="card span-12"><h3>Narration</h3><p>' + html(tx.narration || txNombaTransaction(tx).narration || '--') + '</p></div>',
+        '<div class="card span-12"><h3>Raw Transaction</h3><pre>' + html(JSON.stringify(tx, null, 2)) + '</pre></div>',
+        '</div></div>'
+      ].join('');
+      detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function renderSecurityOverview() {
       const page = document.getElementById('page');
-      page.innerHTML = loading('Loading webhook events...');
+      page.innerHTML = loading('Loading security overview...');
       try {
-        state.webhooks = await api('/webhooks/events');
-        page.innerHTML = '<div class="card"><h2>Live Event Monitor</h2>' + webhookList(state.webhooks, true) + '</div>';
+        const [customers, virtualAccounts, transactions, webhooks, audit] = await Promise.all([
+          api('/users'),
+          api('/virtual-accounts'),
+          api('/transactions'),
+          api('/webhooks/events'),
+          api('/audit')
+        ]);
+        const trustResults = await Promise.all(customers.slice(0, 20).map(async (customer) => {
+          try {
+            const decision = await api('/trust-engine/users/' + encodeURIComponent(customer.id) + '/decision');
+            return { customer, decision };
+          } catch {
+            return { customer, decision: null };
+          }
+        }));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const incoming = transactions.filter((tx) => tx.direction === 'CREDIT');
+        const outgoing = transactions.filter((tx) => tx.direction === 'DEBIT');
+        const blockedAudits = audit.filter((log) => log.action === 'TRANSFER_GUARD_BLOCK');
+        const transactionsToday = transactions.filter((tx) => new Date(tx.createdAt || tx.occurredAt) >= today);
+        const scores = trustResults.map((item) => item.decision?.assessment?.score).filter((score) => Number.isFinite(Number(score))).map(Number);
+        const averageTrustScore = scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0;
+        const highRiskCustomers = trustResults.filter((item) => ['BLOCK', 'REVIEW'].includes(item.decision?.action) || ['HIGH', 'CRITICAL'].includes(item.decision?.assessment?.riskLevel)).length;
+        const securityAlerts = audit.filter((log) => ['HIGH', 'CRITICAL'].includes(log.severity)).slice(0, 6);
+        const decisions = trustResults.reduce((acc, item) => {
+          const key = item.decision?.action || 'UNKNOWN';
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+        page.innerHTML = [
+          '<div class="grid">',
+          metric('Total Customers', customers.length),
+          metric('Active Virtual Accounts', virtualAccounts.filter((account) => account.status === 'ACTIVE').length),
+          metric('Incoming Payments', incoming.length),
+          metric('Outgoing Payments', outgoing.length),
+          metric('Blocked Transfers', blockedAudits.length),
+          metric('Transactions Today', transactionsToday.length),
+          metric('Average Trust Score', averageTrustScore),
+          metric('High Risk Customers', highRiskCustomers),
+          '<div class="card span-6"><h2>Incoming Payments over time</h2>' + timeSeriesChart(incoming, 'createdAt') + '</div>',
+          '<div class="card span-6"><h2>Trust Score Distribution</h2>' + scoreDistributionChart(scores) + '</div>',
+          '<div class="card span-6"><h2>Risk Decisions</h2>' + decisionChart(decisions) + '</div>',
+          '<div class="card span-6"><h2>Transaction Volume</h2>' + transactionVolumeChart(transactions) + '</div>',
+          '<div class="card span-6"><h2>Recent Security Alerts</h2>' + auditTable(securityAlerts) + '</div>',
+          '<div class="card span-6"><h2>Recent Webhook Events</h2>' + webhookList(webhooks.slice(0, 5)) + '</div>',
+          '<div class="card span-6"><h2>Recent Audit Logs</h2>' + auditTable(audit.slice(0, 5)) + '</div>',
+          '<div class="card span-6"><h2>Recent Transfers</h2>' + transactionTable(outgoing.slice(0, 5), 5, outgoing.length) + '</div>',
+          '</div>'
+        ].join('');
       } catch (error) {
         page.innerHTML = errorCard(error);
       }
     }
 
-    function webhookList(rows, includePayload) {
-      return rows.length ? rows.map((event) => [
-        '<div class="card" style="margin-bottom:10px;">',
-        '<div class="toolbar"><strong>' + html(event.eventType) + '</strong>' + badge(event.verified) + badge(event.processedAt ? 'PROCESSED' : 'PENDING') + '<span class="badge">' + date(event.receivedAt) + '</span></div>',
-        includePayload ? '<pre>' + html(JSON.stringify(event.payload, null, 2)) + '</pre>' : '',
-        '</div>'
-      ].join('')).join('') : empty('No webhook events found.');
+    function timeSeriesChart(rows, dateField) {
+      const buckets = lastSevenDayBuckets();
+      rows.forEach((row) => {
+        const key = new Date(row[dateField] || row.occurredAt).toISOString().slice(0, 10);
+        if (Object.prototype.hasOwnProperty.call(buckets, key)) buckets[key] += 1;
+      });
+      const max = Math.max(1, ...Object.values(buckets));
+      return Object.entries(buckets).map(([day, value]) => chartBar(day.slice(5), value, max)).join('');
+    }
+
+    function scoreDistributionChart(scores) {
+      const buckets = { '0-39': 0, '40-59': 0, '60-79': 0, '80-100': 0 };
+      scores.forEach((score) => {
+        if (score < 40) buckets['0-39'] += 1;
+        else if (score < 60) buckets['40-59'] += 1;
+        else if (score < 80) buckets['60-79'] += 1;
+        else buckets['80-100'] += 1;
+      });
+      const max = Math.max(1, ...Object.values(buckets));
+      return Object.entries(buckets).map(([label, value]) => chartBar(label, value, max)).join('');
+    }
+
+    function decisionChart(decisions) {
+      const rows = { ALLOW: decisions.ALLOW || 0, REVIEW: decisions.REVIEW || 0, BLOCK: decisions.BLOCK || 0 };
+      const max = Math.max(1, ...Object.values(rows));
+      return Object.entries(rows).map(([label, value]) => chartBar(label, value, max)).join('');
+    }
+
+    function transactionVolumeChart(transactions) {
+      const rows = {
+        Incoming: transactions.filter((tx) => tx.direction === 'CREDIT').length,
+        Outgoing: transactions.filter((tx) => tx.direction === 'DEBIT').length,
+        Successful: transactions.filter((tx) => tx.status === 'SUCCESS').length,
+        Failed: transactions.filter((tx) => tx.status === 'FAILED').length,
+      };
+      const max = Math.max(1, ...Object.values(rows));
+      return Object.entries(rows).map(([label, value]) => chartBar(label, value, max)).join('');
+    }
+
+    function lastSevenDayBuckets() {
+      return Array.from({ length: 7 }).reduce((acc, _, index) => {
+        const day = new Date();
+        day.setDate(day.getDate() - (6 - index));
+        acc[day.toISOString().slice(0, 10)] = 0;
+        return acc;
+      }, {});
+    }
+
+    async function renderWebhooks() {
+      const page = document.getElementById('page');
+      page.innerHTML = loading('Loading webhook events...');
+      try {
+        state.webhooks = await api('/webhooks/events');
+        page.innerHTML = '<div class="card"><h2>Live Event Monitor</h2><div class="toolbar"><input id="webhookSearch" placeholder="Search transaction, virtual account, sender, request ID" /></div><div id="webhookList"></div></div>';
+        document.getElementById('webhookSearch').addEventListener('input', renderWebhookFilter);
+        renderWebhookFilter();
+      } catch (error) {
+        page.innerHTML = errorCard(error);
+      }
+    }
+
+    function renderWebhookFilter() {
+      const search = (document.getElementById('webhookSearch')?.value || '').toLowerCase();
+      const rows = state.webhooks.filter((event) => [
+        webhookTransactionId(event),
+        webhookVirtualAccount(event),
+        webhookSender(event),
+        webhookRequestId(event)
+      ].join(' ').toLowerCase().includes(search));
+      document.getElementById('webhookList').innerHTML = webhookList(rows);
+    }
+
+    function webhookList(rows) {
+      return rows.length ? rows.map((event) => webhookCard(event)).join('') : empty('No webhook events found.');
+    }
+
+    function webhookCard(event) {
+      const transactionStatus = event.processedAt ? 'PROCESSED' : event.errorMessage ? 'FAILED' : 'PENDING';
+      const matchingResult = {
+        virtualAccount: webhookVirtualAccount(event),
+        requestId: webhookRequestId(event),
+        processedAt: event.processedAt,
+        errorMessage: event.errorMessage
+      };
+      return [
+        '<details class="card" style="margin-bottom:10px;">',
+        '<summary style="cursor:pointer;">',
+        '<div class="toolbar" style="margin:0;">',
+        '<strong>' + html(event.eventType) + '</strong>',
+        '<span class="badge">' + date(event.receivedAt) + '</span>',
+        '<span class="badge">' + html(webhookAmountLabel(event)) + '</span>',
+        '<span class="badge">' + html(webhookSender(event)) + '</span>',
+        '<span class="badge">' + html(webhookVirtualAccount(event)) + '</span>',
+        badge(event.verified ? 'VERIFIED' : 'UNVERIFIED'),
+        badge(transactionStatus),
+        '<span class="btn">Expand</span>',
+        '</div>',
+        '</summary>',
+        '<div style="margin-top:12px;">',
+        '<h3>Webhook Payload</h3><pre>' + html(JSON.stringify(event.payload, null, 2)) + '</pre>',
+        '<h3>Headers</h3><pre>' + html(JSON.stringify(event.headers || {}, null, 2)) + '</pre>',
+        '<h3>Matching Result</h3><pre>' + html(JSON.stringify(matchingResult, null, 2)) + '</pre>',
+        '<h3>References</h3><pre>Audit Log Resource: WebhookEvent ' + html(event.id) + '\\nTransaction Reference: ' + html(webhookTransactionId(event)) + '</pre>',
+        '</div>',
+        '</details>'
+      ].join('');
     }
 
     async function renderTrustEngine() {
@@ -788,7 +1211,7 @@ export class AppService {
       target.innerHTML = loading('Evaluating trust...');
       try {
         const data = await api(path);
-        target.innerHTML = '<div class="grid"><div class="card span-4"><h3>Trust Score</h3><div class="value" style="font-size:42px;font-weight:800;">' + html(data.score || data.assessment?.score) + '</div></div><div class="card span-4"><h3>Decision</h3>' + badge(data.action || data.riskLevel || data.assessment?.riskLevel) + '</div><div class="card span-4"><h3>Reason</h3><p>' + html(data.reason || data.summary || '') + '</p></div><div class="card span-12"><h3>Risk Factors</h3><pre>' + html(JSON.stringify(data.assessment?.signals || data.signals || [], null, 2)) + '</pre></div></div>';
+        target.innerHTML = '<div class="grid"><div class="card span-4"><h3>Trust Score</h3><div class="value" style="font-size:42px;font-weight:800;">' + html(data.score || data.assessment?.score) + '</div></div><div class="card span-4"><h3>Decision</h3>' + badge(data.action || data.riskLevel || data.assessment?.riskLevel) + '</div><div class="card span-4"><h3>Reason</h3><p>' + html(data.reason || data.summary || '') + '</p></div><div class="card span-6"><h3>Customer Metrics</h3><pre>' + html(JSON.stringify(data.assessment?.metrics || data.metrics || {}, null, 2)) + '</pre></div><div class="card span-6"><h3>Risk Factors</h3><pre>' + html(JSON.stringify(data.assessment?.signals || data.signals || [], null, 2)) + '</pre></div></div>';
       } catch (error) {
         target.innerHTML = errorCard(error);
       }
@@ -799,22 +1222,37 @@ export class AppService {
       page.innerHTML = loading('Loading audit logs...');
       try {
         state.audit = await api('/audit');
-        page.innerHTML = '<div class="card"><h2>Audit Logs</h2>' + auditTable(state.audit) + '</div>';
+        page.innerHTML = [
+          '<div class="card"><h2>Audit Logs</h2>',
+          '<div class="toolbar"><select id="auditFilter"><option value="">All</option><option value="Security">Security</option><option value="Webhook">Webhook</option><option value="Customer">Customer</option><option value="Transfer">Transfer</option><option value="System">System</option></select></div>',
+          '<div id="auditTable"></div></div>'
+        ].join('');
+        document.getElementById('auditFilter').addEventListener('change', renderAuditFilter);
+        renderAuditFilter();
       } catch (error) {
         page.innerHTML = errorCard(error);
       }
     }
 
+    function renderAuditFilter() {
+      const filter = document.getElementById('auditFilter')?.value || '';
+      const rows = filter ? state.audit.filter((log) => auditCategory(log) === filter) : state.audit;
+      document.getElementById('auditTable').innerHTML = auditTable(rows);
+    }
+
     function auditTable(rows) {
       return rows.length ? [
-        '<div class="table-wrap"><table><thead><tr><th>Action</th><th>Actor</th><th>Resource</th><th>Severity</th><th>Timestamp</th></tr></thead><tbody>',
+        '<div class="table-wrap"><table><thead><tr><th>Severity</th><th>Action</th><th>Actor</th><th>Time</th><th>Linked Customer</th><th>Linked Transaction</th><th>Linked Virtual Account</th><th>Webhook Reference</th></tr></thead><tbody>',
         rows.map((log) => [
           '<tr>',
+          '<td>' + badge(log.severity) + '</td>',
           '<td>' + html(log.action) + '</td>',
           '<td>' + badge(log.actorType) + '</td>',
-          '<td>' + html(log.resourceType) + '<br />' + html(log.resourceId || '--') + '</td>',
-          '<td>' + badge(log.severity) + '</td>',
           '<td>' + date(log.createdAt) + '</td>',
+          '<td>' + html(log.user ? customerCode(log.user) + ' ' + person(log.user) : log.userId || '--') + '</td>',
+          '<td>' + html(auditLinkedTransaction(log)) + '</td>',
+          '<td>' + html(auditLinkedVirtualAccount(log)) + '</td>',
+          '<td>' + html(auditWebhookReference(log)) + '</td>',
           '</tr>'
         ].join('')).join(''),
         '</tbody></table></div>'
@@ -823,10 +1261,12 @@ export class AppService {
 
     function renderSettings() {
       const webhookEndpoint = window.location.origin + '/webhooks/nomba';
+      const environment = window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1' ? 'Local Development' : 'Production';
+      const renderDeployment = window.location.hostname.includes('onrender.com') ? 'Render Live Service' : 'Local Preview';
       document.getElementById('page').innerHTML = [
         '<div class="grid">',
-        '<div class="card span-6"><h2>Connected API Routes</h2><pre>GET /dashboard\nGET /users\nPOST /users\nGET /users/:id\nGET /virtual-accounts\nPOST /virtual-accounts\nGET /virtual-accounts/nomba/:identifier\nPATCH /virtual-accounts/:id\nPATCH /virtual-accounts/:id/suspend\nPATCH /virtual-accounts/:id/close\nGET /transactions\nGET /webhooks/events\nGET /trust-engine/users/:id/score\nGET /trust-engine/users/:id/decision\nGET /audit</pre></div>',
-        '<div class="card span-6"><h2>Webhook Integration</h2><p>TrustVault is connected to Nomba through a secure webhook endpoint.</p><p>Every incoming payment notification is verified using HMAC-SHA256 signatures before processing.</p><p>Verified events are automatically:</p><p>• Stored for audit purposes<br />• Linked to the correct virtual account<br />• Reconciled into customer transactions<br />• Used to update customer trust intelligence</p><h3>Endpoint</h3><pre>' + html(webhookEndpoint) + '</pre><h3>Status</h3>' + badge('CONNECTED') + '</div>',
+        '<div class="card span-6"><h2>Connection Status</h2><div class="status-list">' + statusRow('Webhook Status', 'Receiving signed notifications', 'ACTIVE') + statusRow('Signature Verification', 'HMAC-SHA256 enabled', 'ACTIVE') + statusRow('Nomba Connection', 'Configured', 'ACTIVE') + statusRow('Environment', environment, 'ACTIVE') + statusRow('Render Deployment', renderDeployment, 'ACTIVE') + statusRow('Database', 'Connected through Prisma', 'ACTIVE') + '</div></div>',
+        '<div class="card span-6"><h2>Webhook Integration</h2><p>TrustVault securely receives payment notifications from Nomba using signed webhooks.</p><p>Every event is cryptographically verified before being reconciled into customer transactions.</p><p>Verified events automatically:</p><p>- Create audit records<br />- Update payment history<br />- Link virtual accounts<br />- Feed Trust Engine analysis</p><h3>Webhook Endpoint</h3><pre>' + html(webhookEndpoint) + '</pre></div>',
         '</div>'
       ].join('');
     }

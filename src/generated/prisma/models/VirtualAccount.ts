@@ -35,6 +35,7 @@ export type VirtualAccountMinAggregateOutputType = {
   status: $Enums.VirtualAccountStatus | null
   createdAt: Date | null
   updatedAt: Date | null
+  archivedAt: Date | null
 }
 
 export type VirtualAccountMaxAggregateOutputType = {
@@ -48,6 +49,7 @@ export type VirtualAccountMaxAggregateOutputType = {
   status: $Enums.VirtualAccountStatus | null
   createdAt: Date | null
   updatedAt: Date | null
+  archivedAt: Date | null
 }
 
 export type VirtualAccountCountAggregateOutputType = {
@@ -62,6 +64,7 @@ export type VirtualAccountCountAggregateOutputType = {
   metadata: number
   createdAt: number
   updatedAt: number
+  archivedAt: number
   _all: number
 }
 
@@ -77,6 +80,7 @@ export type VirtualAccountMinAggregateInputType = {
   status?: true
   createdAt?: true
   updatedAt?: true
+  archivedAt?: true
 }
 
 export type VirtualAccountMaxAggregateInputType = {
@@ -90,6 +94,7 @@ export type VirtualAccountMaxAggregateInputType = {
   status?: true
   createdAt?: true
   updatedAt?: true
+  archivedAt?: true
 }
 
 export type VirtualAccountCountAggregateInputType = {
@@ -104,6 +109,7 @@ export type VirtualAccountCountAggregateInputType = {
   metadata?: true
   createdAt?: true
   updatedAt?: true
+  archivedAt?: true
   _all?: true
 }
 
@@ -191,6 +197,7 @@ export type VirtualAccountGroupByOutputType = {
   metadata: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
+  archivedAt: Date | null
   _count: VirtualAccountCountAggregateOutputType | null
   _min: VirtualAccountMinAggregateOutputType | null
   _max: VirtualAccountMaxAggregateOutputType | null
@@ -226,6 +233,7 @@ export type VirtualAccountWhereInput = {
   metadata?: Prisma.JsonNullableFilter<"VirtualAccount">
   createdAt?: Prisma.DateTimeFilter<"VirtualAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"VirtualAccount"> | Date | string
+  archivedAt?: Prisma.DateTimeNullableFilter<"VirtualAccount"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   transactions?: Prisma.TransactionListRelationFilter
 }
@@ -242,6 +250,7 @@ export type VirtualAccountOrderByWithRelationInput = {
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  archivedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   transactions?: Prisma.TransactionOrderByRelationAggregateInput
 }
@@ -261,6 +270,7 @@ export type VirtualAccountWhereUniqueInput = Prisma.AtLeast<{
   metadata?: Prisma.JsonNullableFilter<"VirtualAccount">
   createdAt?: Prisma.DateTimeFilter<"VirtualAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"VirtualAccount"> | Date | string
+  archivedAt?: Prisma.DateTimeNullableFilter<"VirtualAccount"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   transactions?: Prisma.TransactionListRelationFilter
 }, "id" | "accountNumber" | "providerReference">
@@ -277,6 +287,7 @@ export type VirtualAccountOrderByWithAggregationInput = {
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  archivedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.VirtualAccountCountOrderByAggregateInput
   _max?: Prisma.VirtualAccountMaxOrderByAggregateInput
   _min?: Prisma.VirtualAccountMinOrderByAggregateInput
@@ -297,6 +308,7 @@ export type VirtualAccountScalarWhereWithAggregatesInput = {
   metadata?: Prisma.JsonNullableWithAggregatesFilter<"VirtualAccount">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"VirtualAccount"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"VirtualAccount"> | Date | string
+  archivedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"VirtualAccount"> | Date | string | null
 }
 
 export type VirtualAccountCreateInput = {
@@ -310,6 +322,7 @@ export type VirtualAccountCreateInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  archivedAt?: Date | string | null
   user?: Prisma.UserCreateNestedOneWithoutVirtualAccountsInput
   transactions?: Prisma.TransactionCreateNestedManyWithoutVirtualAccountInput
 }
@@ -326,6 +339,7 @@ export type VirtualAccountUncheckedCreateInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  archivedAt?: Date | string | null
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutVirtualAccountInput
 }
 
@@ -340,6 +354,7 @@ export type VirtualAccountUpdateInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneWithoutVirtualAccountsNestedInput
   transactions?: Prisma.TransactionUpdateManyWithoutVirtualAccountNestedInput
 }
@@ -356,6 +371,7 @@ export type VirtualAccountUncheckedUpdateInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutVirtualAccountNestedInput
 }
 
@@ -371,6 +387,7 @@ export type VirtualAccountCreateManyInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  archivedAt?: Date | string | null
 }
 
 export type VirtualAccountUpdateManyMutationInput = {
@@ -384,6 +401,7 @@ export type VirtualAccountUpdateManyMutationInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type VirtualAccountUncheckedUpdateManyInput = {
@@ -398,6 +416,7 @@ export type VirtualAccountUncheckedUpdateManyInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type VirtualAccountListRelationFilter = {
@@ -422,6 +441,7 @@ export type VirtualAccountCountOrderByAggregateInput = {
   metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  archivedAt?: Prisma.SortOrder
 }
 
 export type VirtualAccountMaxOrderByAggregateInput = {
@@ -435,6 +455,7 @@ export type VirtualAccountMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  archivedAt?: Prisma.SortOrder
 }
 
 export type VirtualAccountMinOrderByAggregateInput = {
@@ -448,6 +469,7 @@ export type VirtualAccountMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  archivedAt?: Prisma.SortOrder
 }
 
 export type VirtualAccountNullableScalarRelationFilter = {
@@ -528,6 +550,7 @@ export type VirtualAccountCreateWithoutUserInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  archivedAt?: Date | string | null
   transactions?: Prisma.TransactionCreateNestedManyWithoutVirtualAccountInput
 }
 
@@ -542,6 +565,7 @@ export type VirtualAccountUncheckedCreateWithoutUserInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  archivedAt?: Date | string | null
   transactions?: Prisma.TransactionUncheckedCreateNestedManyWithoutVirtualAccountInput
 }
 
@@ -586,6 +610,7 @@ export type VirtualAccountScalarWhereInput = {
   metadata?: Prisma.JsonNullableFilter<"VirtualAccount">
   createdAt?: Prisma.DateTimeFilter<"VirtualAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"VirtualAccount"> | Date | string
+  archivedAt?: Prisma.DateTimeNullableFilter<"VirtualAccount"> | Date | string | null
 }
 
 export type VirtualAccountCreateWithoutTransactionsInput = {
@@ -599,6 +624,7 @@ export type VirtualAccountCreateWithoutTransactionsInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  archivedAt?: Date | string | null
   user?: Prisma.UserCreateNestedOneWithoutVirtualAccountsInput
 }
 
@@ -614,6 +640,7 @@ export type VirtualAccountUncheckedCreateWithoutTransactionsInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  archivedAt?: Date | string | null
 }
 
 export type VirtualAccountCreateOrConnectWithoutTransactionsInput = {
@@ -643,6 +670,7 @@ export type VirtualAccountUpdateWithoutTransactionsInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneWithoutVirtualAccountsNestedInput
 }
 
@@ -658,6 +686,7 @@ export type VirtualAccountUncheckedUpdateWithoutTransactionsInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type VirtualAccountCreateManyUserInput = {
@@ -671,6 +700,7 @@ export type VirtualAccountCreateManyUserInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  archivedAt?: Date | string | null
 }
 
 export type VirtualAccountUpdateWithoutUserInput = {
@@ -684,6 +714,7 @@ export type VirtualAccountUpdateWithoutUserInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   transactions?: Prisma.TransactionUpdateManyWithoutVirtualAccountNestedInput
 }
 
@@ -698,6 +729,7 @@ export type VirtualAccountUncheckedUpdateWithoutUserInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   transactions?: Prisma.TransactionUncheckedUpdateManyWithoutVirtualAccountNestedInput
 }
 
@@ -712,6 +744,7 @@ export type VirtualAccountUncheckedUpdateManyWithoutUserInput = {
   metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -757,6 +790,7 @@ export type VirtualAccountSelect<ExtArgs extends runtime.Types.Extensions.Intern
   metadata?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  archivedAt?: boolean
   user?: boolean | Prisma.VirtualAccount$userArgs<ExtArgs>
   transactions?: boolean | Prisma.VirtualAccount$transactionsArgs<ExtArgs>
   _count?: boolean | Prisma.VirtualAccountCountOutputTypeDefaultArgs<ExtArgs>
@@ -774,6 +808,7 @@ export type VirtualAccountSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   metadata?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  archivedAt?: boolean
   user?: boolean | Prisma.VirtualAccount$userArgs<ExtArgs>
 }, ExtArgs["result"]["virtualAccount"]>
 
@@ -789,6 +824,7 @@ export type VirtualAccountSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   metadata?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  archivedAt?: boolean
   user?: boolean | Prisma.VirtualAccount$userArgs<ExtArgs>
 }, ExtArgs["result"]["virtualAccount"]>
 
@@ -804,9 +840,10 @@ export type VirtualAccountSelectScalar = {
   metadata?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  archivedAt?: boolean
 }
 
-export type VirtualAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "label" | "accountName" | "accountNumber" | "bankCode" | "providerReference" | "status" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["virtualAccount"]>
+export type VirtualAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "label" | "accountName" | "accountNumber" | "bankCode" | "providerReference" | "status" | "metadata" | "createdAt" | "updatedAt" | "archivedAt", ExtArgs["result"]["virtualAccount"]>
 export type VirtualAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.VirtualAccount$userArgs<ExtArgs>
   transactions?: boolean | Prisma.VirtualAccount$transactionsArgs<ExtArgs>
@@ -837,6 +874,7 @@ export type $VirtualAccountPayload<ExtArgs extends runtime.Types.Extensions.Inte
     metadata: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
+    archivedAt: Date | null
   }, ExtArgs["result"]["virtualAccount"]>
   composites: {}
 }
@@ -1273,6 +1311,7 @@ export interface VirtualAccountFieldRefs {
   readonly metadata: Prisma.FieldRef<"VirtualAccount", 'Json'>
   readonly createdAt: Prisma.FieldRef<"VirtualAccount", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"VirtualAccount", 'DateTime'>
+  readonly archivedAt: Prisma.FieldRef<"VirtualAccount", 'DateTime'>
 }
     
 

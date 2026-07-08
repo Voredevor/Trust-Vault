@@ -20,8 +20,12 @@ export class DashboardService {
       recentWebhookEvents,
       recentAuditLogs,
     ] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.virtualAccount.count(),
+      this.prisma.user.count({
+        where: { deletedAt: null },
+      }),
+      this.prisma.virtualAccount.count({
+        where: { archivedAt: null },
+      }),
       this.prisma.transaction.count({
         where: { createdAt: { gte: startOfToday } },
       }),
@@ -29,7 +33,7 @@ export class DashboardService {
         where: { receivedAt: { gte: startOfToday } },
       }),
       this.prisma.user.count({
-        where: { status: { in: ['PENDING', 'SUSPENDED'] } },
+        where: { deletedAt: null, status: { in: ['PENDING', 'SUSPENDED'] } },
       }),
       this.prisma.transaction.count({
         where: { direction: 'DEBIT', status: { in: ['FAILED', 'REVERSED'] } },
