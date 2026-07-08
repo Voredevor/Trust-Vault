@@ -23,7 +23,9 @@ describe('WebhooksService', () => {
 
   const prismaService = {
     webhookEvent: {
+      count: jest.fn(),
       create: jest.fn(),
+      findFirst: jest.fn(),
       upsert: jest.fn(),
       update: jest.fn(),
       findUniqueOrThrow: jest.fn(),
@@ -33,6 +35,7 @@ describe('WebhooksService', () => {
       create: jest.fn(),
     },
     transaction: {
+      findFirst: jest.fn(),
       upsert: jest.fn(),
     },
     virtualAccount: {
@@ -61,10 +64,17 @@ describe('WebhooksService', () => {
 
     service = module.get<WebhooksService>(WebhooksService);
     prismaService.webhookEvent.create.mockResolvedValue({ id: 'event-id' });
+    prismaService.webhookEvent.count.mockResolvedValue(1);
+    prismaService.webhookEvent.findFirst.mockResolvedValue({
+      id: 'event-id',
+      receivedAt: new Date('2026-07-08T00:00:00.000Z'),
+      payload: { event: 'payment.received' },
+    });
     prismaService.webhookEvent.upsert.mockResolvedValue({ id: 'event-id' });
     prismaService.webhookEvent.update.mockResolvedValue({ id: 'event-id' });
     prismaService.webhookEvent.findUniqueOrThrow.mockResolvedValue({ id: 'event-id' });
     prismaService.auditLog.create.mockResolvedValue({ id: 'audit-log-id' });
+    prismaService.transaction.findFirst.mockResolvedValue(null);
   });
 
   it('should be defined', () => {
@@ -114,7 +124,7 @@ describe('WebhooksService', () => {
       amount: '1250',
       currency: 'NGN',
       reference: 'txn_1250',
-      accountRef: 'account-ref',
+      accountReference: 'account-ref',
     };
     const rawBody = Buffer.from(JSON.stringify(payload));
     const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
@@ -174,5 +184,17 @@ describe('WebhooksService', () => {
         Buffer.from('{"event":"payment.received"}'),
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('returns temporary webhook debug information', async () => {
+    await expect(service.debug()).resolves.toMatchObject({
+      totalWebhookEvents: 1,
+      lastSignatureVerificationResult: null,
+    });
+
+    expect(prismaService.webhookEvent.count).toHaveBeenCalledTimes(1);
+    expect(prismaService.webhookEvent.findFirst).toHaveBeenCalledWith({
+      orderBy: { receivedAt: 'desc' },
+    });
   });
 });

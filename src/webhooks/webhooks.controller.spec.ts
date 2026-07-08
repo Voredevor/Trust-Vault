@@ -18,6 +18,7 @@ describe('WebhooksController', () => {
   let controller: WebhooksController;
   let webhooksService: {
     ingestNombaWebhook: jest.Mock;
+    debug: jest.Mock;
     findAll: jest.Mock;
     findOne: jest.Mock;
   };
@@ -25,6 +26,7 @@ describe('WebhooksController', () => {
   beforeEach(async () => {
     webhooksService = {
       ingestNombaWebhook: jest.fn(),
+      debug: jest.fn(),
       findAll: jest.fn(),
       findOne: jest.fn(),
     };
@@ -77,5 +79,11 @@ describe('WebhooksController', () => {
 
     expect(webhooksService.findAll).toHaveBeenCalledTimes(1);
     expect(webhooksService.findOne).toHaveBeenCalledWith('event-1');
+  });
+
+  it('exposes webhook debug state', () => {
+    controller.debug();
+
+    expect(webhooksService.debug).toHaveBeenCalledTimes(1);
   });
 });
