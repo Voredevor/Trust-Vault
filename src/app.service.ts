@@ -400,6 +400,7 @@ export class AppService {
 
     const date = (value) => value ? new Date(value).toLocaleString() : '--';
     const person = (user) => user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : '--';
+    const virtualAccountName = (account) => account?.metadata?.bankAccountName || account?.accountName || account?.label || '--';
     const customerCode = (userOrId) => {
       const id = typeof userOrId === 'string' ? userOrId : userOrId?.id;
       return id ? 'TV-' + id.replace(/-/g, '').slice(0, 8).toUpperCase() : '--';
@@ -565,7 +566,7 @@ export class AppService {
         target.innerHTML = [
           '<div class="grid">',
           '<div class="card span-4"><h3>Personal details</h3><p>' + html(customerCode(customer)) + '<br />' + html(person(customer)) + '<br />' + html(customer.email) + '<br />' + html(customer.phoneNumber || '--') + '</p>' + badge(customer.status) + '</div>',
-          '<div class="card span-4"><h3>Dedicated Virtual Account</h3>' + smallList(customer.virtualAccounts, (item) => html(item.accountName) + '<br />' + html(item.accountNumber || item.providerReference || '--')) + '</div>',
+          '<div class="card span-4"><h3>Dedicated Virtual Account</h3>' + smallList(customer.virtualAccounts, (item) => html(virtualAccountName(item)) + '<br />' + html(item.accountNumber || item.providerReference || '--')) + '</div>',
           '<div class="card span-4"><h3>Risk Score</h3><button class="btn primary" onclick="setPage(\'trustEngine\')">Open Trust Engine</button></div>',
           '<div class="card span-6"><h3>Trusted Devices</h3>' + smallList(customer.devices, (item) => html(item.name) + ' ' + badge(item.status)) + '</div>',
           '<div class="card span-6"><h3>Beneficiaries</h3>' + smallList(customer.beneficiaries, (item) => html(item.displayName) + ' ' + badge(item.status)) + '</div>',
@@ -608,7 +609,7 @@ export class AppService {
         rows.map((account) => [
           '<tr>',
           '<td>' + html(account.user ? customerCode(account.user) + ' ' + person(account.user) : 'Unassigned') + '</td>',
-          '<td>' + html(account.accountName) + '</td>',
+          '<td>' + html(virtualAccountName(account)) + '</td>',
           '<td>' + html(account.accountNumber || '--') + '</td>',
           '<td>' + html(account.providerReference || '--') + '</td>',
           '<td>' + badge(account.status) + '</td>',

@@ -21,7 +21,10 @@ export class VirtualAccountsService {
       data: {
         userId: userId || null,
         label: createVirtualAccountDto.accountName,
-        accountName: nombaResponse.data.accountName,
+        accountName:
+          nombaResponse.data.bankAccountName ??
+          nombaResponse.data.accountName ??
+          createVirtualAccountDto.accountName,
         accountNumber: nombaResponse.data.bankAccountNumber,
         bankCode: null,
         providerReference: createVirtualAccountDto.accountRef,
