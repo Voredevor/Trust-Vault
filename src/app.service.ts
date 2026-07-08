@@ -401,6 +401,13 @@ export class AppService {
     const date = (value) => value ? new Date(value).toLocaleString() : '--';
     const person = (user) => user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : '--';
     const virtualAccountName = (account) => account?.metadata?.bankAccountName || account?.accountName || account?.label || '--';
+    const txPayload = (tx) => tx?.metadata?.payload || {};
+    const txNombaTransaction = (tx) => txPayload(tx)?.data?.transaction || {};
+    const txNombaCustomer = (tx) => txPayload(tx)?.data?.customer || {};
+    const txSenderName = (tx) => txNombaCustomer(tx).senderName || tx.metadata?.senderName || '--';
+    const txType = (tx) => txNombaTransaction(tx).type || tx.metadata?.eventType || tx.direction || '--';
+    const txSessionId = (tx) => txNombaTransaction(tx).sessionId || tx.metadata?.sessionId || '--';
+    const txVirtualAccountNumber = (tx) => tx.virtualAccount?.accountNumber || txNombaTransaction(tx).aliasAccountNumber || '--';
     const customerCode = (userOrId) => {
       const id = typeof userOrId === 'string' ? userOrId : userOrId?.id;
       return id ? 'TV-' + id.replace(/-/g, '').slice(0, 8).toUpperCase() : '--';
@@ -697,21 +704,32 @@ export class AppService {
     function renderTransactionFilter() {
       const filter = document.getElementById('txFilter').value;
       const rows = filter ? state.transactions.filter((tx) => tx.direction === filter || tx.status === filter) : state.transactions;
-      document.getElementById('txTable').innerHTML = transactionTable(rows);
+      document.getElementById('txTable').innerHTML = transactionTable(rows, undefined, state.transactions.length);
     }
 
-    function transactionTable(rows, limit) {
+    function transactionTable(rows, limit, totalCount) {
       const items = typeof limit === 'number' ? rows.slice(0, limit) : rows;
+      const knownTotal = typeof totalCount === 'number' ? totalCount : rows.length;
+      if (!items.length && knownTotal > 0) {
+        return [
+          '<div class="table-wrap"><table><thead><tr><th>Amount</th><th>Sender</th><th>Narration</th><th>Type</th><th>Session ID</th><th>Created</th><th>Virtual Account</th><th>Customer</th><th>Status</th></tr></thead><tbody>',
+          '<tr><td colspan="9">No matching transactions.</td></tr>',
+          '</tbody></table></div>'
+        ].join('');
+      }
       return items.length ? [
-        '<div class="table-wrap"><table><thead><tr><th>Reference</th><th>Amount</th><th>Status</th><th>Direction</th><th>Customer</th><th>Timestamp</th></tr></thead><tbody>',
+        '<div class="table-wrap"><table><thead><tr><th>Amount</th><th>Sender</th><th>Narration</th><th>Type</th><th>Session ID</th><th>Created</th><th>Virtual Account</th><th>Customer</th><th>Status</th></tr></thead><tbody>',
         items.map((tx) => [
           '<tr>',
-          '<td>' + html(tx.reference) + '</td>',
           '<td>' + money(tx.amount, tx.currency) + '</td>',
-          '<td>' + badge(tx.status) + '</td>',
-          '<td>' + badge(tx.direction) + '</td>',
-          '<td>' + html(person(tx.user)) + '</td>',
+          '<td>' + html(txSenderName(tx)) + '</td>',
+          '<td>' + html(tx.narration || txNombaTransaction(tx).narration || '--') + '<br /><span class="badge">' + html(tx.reference) + '</span></td>',
+          '<td>' + html(txType(tx)) + '</td>',
+          '<td>' + html(txSessionId(tx)) + '</td>',
           '<td>' + date(tx.createdAt || tx.occurredAt) + '</td>',
+          '<td>' + html(txVirtualAccountNumber(tx)) + '</td>',
+          '<td>' + html(person(tx.user)) + '</td>',
+          '<td>' + badge(tx.status) + '</td>',
           '</tr>'
         ].join('')).join(''),
         '</tbody></table></div>'
@@ -804,10 +822,11 @@ export class AppService {
     }
 
     function renderSettings() {
+      const webhookEndpoint = window.location.origin + '/webhooks/nomba';
       document.getElementById('page').innerHTML = [
         '<div class="grid">',
         '<div class="card span-6"><h2>Connected API Routes</h2><pre>GET /dashboard\nGET /users\nPOST /users\nGET /users/:id\nGET /virtual-accounts\nPOST /virtual-accounts\nGET /virtual-accounts/nomba/:identifier\nPATCH /virtual-accounts/:id\nPATCH /virtual-accounts/:id/suspend\nPATCH /virtual-accounts/:id/close\nGET /transactions\nGET /webhooks/events\nGET /trust-engine/users/:id/score\nGET /trust-engine/users/:id/decision\nGET /audit</pre></div>',
-        '<div class="card span-6"><h2>Webhook Setup</h2><p>The monitor is ready for stored events. Set <code>NOMBA_WEBHOOK_SECRET</code>, expose <code>/webhooks/nomba</code> through a tunnel, then configure Nomba to send signed events.</p></div>',
+        '<div class="card span-6"><h2>Webhook Integration</h2><p>TrustVault is connected to Nomba through a secure webhook endpoint.</p><p>Every incoming payment notification is verified using HMAC-SHA256 signatures before processing.</p><p>Verified events are automatically:</p><p>• Stored for audit purposes<br />• Linked to the correct virtual account<br />• Reconciled into customer transactions<br />• Used to update customer trust intelligence</p><h3>Endpoint</h3><pre>' + html(webhookEndpoint) + '</pre><h3>Status</h3>' + badge('CONNECTED') + '</div>',
         '</div>'
       ].join('');
     }

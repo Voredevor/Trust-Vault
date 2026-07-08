@@ -287,27 +287,49 @@ export class WebhooksService {
 
   private async processVerifiedEvent(eventId: string, payload: unknown) {
     const eventPayload = this.asRecord(payload);
-    const eventType = this.readPayloadValue(eventPayload, ['event', 'type', 'eventType']) ?? 'unknown';
-    const providerReference = this.readPayloadValue(eventPayload, ['reference', 'transactionReference', 'eventId']);
-    const accountReference = this.readPayloadValue(eventPayload, [
-      'accountReference',
-      'virtualAccountReference',
+    const eventType = this.readPayloadValue(eventPayload, ['event_type', 'event', 'type', 'eventType']) ?? 'unknown';
+    const providerReference = this.readNestedPayloadValue(eventPayload, [
+      ['data', 'transaction', 'transactionId'],
+      ['reference'],
+      ['transactionReference'],
+      ['eventId'],
+      ['requestId'],
     ]);
-    const accountNumber = this.readPayloadValue(eventPayload, ['accountNumber']);
+    const accountReference = this.readNestedPayloadValue(eventPayload, [
+      ['data', 'transaction', 'aliasAccountReference'],
+      ['accountReference'],
+      ['virtualAccountReference'],
+      ['aliasAccountReference'],
+    ]);
+    const accountNumber = this.readNestedPayloadValue(eventPayload, [
+      ['data', 'transaction', 'aliasAccountNumber'],
+      ['accountNumber'],
+      ['virtualAccountNumber'],
+      ['bankAccountNumber'],
+      ['aliasAccountNumber'],
+    ]);
     const currency = this.readPayloadValue(eventPayload, ['currency']) ?? 'NGN';
-    const narration = this.readPayloadValue(eventPayload, ['narration', 'description']) ?? `Nomba webhook ${eventType}`;
-    const amount = this.readAmount(eventPayload, ['amount', 'transactionAmount']);
+    const narration = this.readNestedPayloadValue(eventPayload, [
+      ['data', 'transaction', 'narration'],
+      ['narration'],
+      ['description'],
+    ]) ?? `Nomba webhook ${eventType}`;
+    const amount = this.readNestedAmount(eventPayload, [
+      ['data', 'transaction', 'transactionAmount'],
+      ['amount'],
+      ['transactionAmount'],
+    ]);
 
     if (this.lastWebhookDebugState) {
       this.lastWebhookDebugState.accountNumber = accountNumber;
       this.lastWebhookDebugState.accountReference = accountReference;
     }
     this.logger.log({
-      stage: 'Account number',
+      stage: 'Extracted account number',
       accountNumber: accountNumber ?? null,
     });
     this.logger.log({
-      stage: 'Account reference',
+      stage: 'Extracted account reference',
       accountReference: accountReference ?? null,
     });
 
@@ -338,6 +360,12 @@ export class WebhooksService {
     });
 
     const matchedVirtualAccount = await this.findMatchingVirtualAccount(accountReference, accountNumber);
+    const matchedUser = matchedVirtualAccount?.userId
+      ? await this.prisma.user.findUnique({
+          where: { id: matchedVirtualAccount.userId },
+          select: { id: true },
+        })
+      : null;
     const customerMatched = Boolean(matchedVirtualAccount?.userId);
     const virtualAccountMatched = Boolean(matchedVirtualAccount);
     if (this.lastWebhookDebugState) {
@@ -363,7 +391,7 @@ export class WebhooksService {
           reference: transactionReference,
         },
         create: {
-          userId: matchedVirtualAccount.userId,
+          userId: matchedUser?.id ?? matchedVirtualAccount.userId,
           virtualAccountId: matchedVirtualAccount.id,
           reference: transactionReference,
           providerReference: providerReference ?? transactionReference,
@@ -379,7 +407,7 @@ export class WebhooksService {
           } as Prisma.InputJsonValue,
         },
         update: {
-          userId: matchedVirtualAccount.userId,
+          userId: matchedUser?.id ?? matchedVirtualAccount.userId,
           virtualAccountId: matchedVirtualAccount.id,
           providerReference: providerReference ?? transactionReference,
           direction: 'CREDIT',
@@ -412,6 +440,24 @@ export class WebhooksService {
         : matchedVirtualAccount
           ? 'Missing amount'
           : 'No matching virtual account',
+    });
+
+    await this.prisma.auditLog.update({
+      where: { id: auditLog.id },
+      data: {
+        userId: matchedUser?.id ?? null,
+        metadata: {
+          eventType,
+          providerReference,
+          accountReference,
+          accountNumber,
+          amount,
+          currency,
+          matchedUserId: matchedUser?.id ?? null,
+          matchedVirtualAccountId: matchedVirtualAccount?.id ?? null,
+          transactionId: transaction?.id ?? null,
+        } as Prisma.InputJsonValue,
+      },
     });
 
     await this.prisma.webhookEvent.update({
@@ -601,6 +647,31 @@ export class WebhooksService {
     return undefined;
   }
 
+  private readNestedPayloadValue(payload: Record<string, unknown>, paths: string[][]): string | undefined {
+    for (const path of paths) {
+      let currentValue: unknown = payload;
+
+      for (const segment of path) {
+        if (!currentValue || typeof currentValue !== 'object' || Array.isArray(currentValue)) {
+          currentValue = undefined;
+          break;
+        }
+
+        currentValue = (currentValue as Record<string, unknown>)[segment];
+      }
+
+      if (typeof currentValue === 'string' && currentValue.trim()) {
+        return currentValue;
+      }
+
+      if (typeof currentValue === 'number' && Number.isFinite(currentValue)) {
+        return String(currentValue);
+      }
+    }
+
+    return undefined;
+  }
+
   private readAmount(payload: Record<string, unknown>, keys: string[]): string | null {
     for (const key of keys) {
       const value = payload[key];
@@ -608,6 +679,20 @@ export class WebhooksService {
         return value.toFixed(2);
       }
 
+      if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) {
+          return parsed.toFixed(2);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private readNestedAmount(payload: Record<string, unknown>, paths: string[][]): string | null {
+    for (const path of paths) {
+      const value = this.readNestedPayloadValue(payload, [path]);
       if (typeof value === 'string') {
         const parsed = Number(value);
         if (Number.isFinite(parsed)) {

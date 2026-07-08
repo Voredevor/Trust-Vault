@@ -45,7 +45,7 @@ export class TrustEngineService {
 			throw new NotFoundException(`User ${userId} not found`);
 		}
 
-		const [devices, transactions, virtualAccounts] = await Promise.all([
+		const [devices, transactions, virtualAccounts, auditLogs] = await Promise.all([
 			this.prisma.device.findMany({
 				where: { userId },
 				select: { status: true, trustedAt: true, lastSeenAt: true },
@@ -58,15 +58,20 @@ export class TrustEngineService {
 				where: { userId },
 				select: { status: true },
 			}),
+			this.prisma.auditLog.findMany({
+				where: { userId },
+				select: { action: true, severity: true, createdAt: true },
+			}),
 		]);
 
 		const signals: TrustRiskSignal[] = [];
-		let score = 100;
+		let score = 70;
 
 		score = this.applyUserStatusSignal(user.status, score, signals);
 		score = this.applyDeviceSignals(devices, score, signals);
 		score = this.applyTransactionSignals(transactions, score, signals);
 		score = this.applyVirtualAccountSignals(virtualAccounts, score, signals);
+		score = this.applyAuditSignals(auditLogs, score, signals);
 
 		score = this.clampScore(score);
 
@@ -99,8 +104,8 @@ export class TrustEngineService {
 	): number {
 		const normalizedStatus = String(status);
 		if (normalizedStatus === 'ACTIVE') {
-			signals.push({ key: 'user.active', description: 'User account is active', impact: 0 });
-			return score;
+			signals.push({ key: 'user.active', description: 'User account is active', impact: 15 });
+			return score + 15;
 		}
 
 		if (normalizedStatus === 'PENDING') {
@@ -247,6 +252,48 @@ export class TrustEngineService {
 		return score;
 	}
 
+	private applyAuditSignals(
+		auditLogs: Array<{ action: string; severity: { toString(): string } }>,
+		score: number,
+		signals: TrustRiskSignal[],
+	): number {
+		const lowCount = auditLogs.filter((auditLog) => String(auditLog.severity) === 'LOW').length;
+		const mediumCount = auditLogs.filter((auditLog) => String(auditLog.severity) === 'MEDIUM').length;
+		const highCount = auditLogs.filter((auditLog) => ['HIGH', 'CRITICAL'].includes(String(auditLog.severity))).length;
+
+		if (lowCount > 0) {
+			const impact = Math.min(lowCount, 5);
+			signals.push({
+				key: 'audit.low',
+				description: `${lowCount} low-severity audit event(s) recorded for this customer`,
+				impact,
+			});
+			score += impact;
+		}
+
+		if (mediumCount > 0) {
+			const impact = mediumCount * -6;
+			signals.push({
+				key: 'audit.medium',
+				description: `${mediumCount} medium-severity audit event(s) recorded for this customer`,
+				impact,
+			});
+			score += impact;
+		}
+
+		if (highCount > 0) {
+			const impact = highCount * -18;
+			signals.push({
+				key: 'audit.high',
+				description: `${highCount} high or critical audit event(s) recorded for this customer`,
+				impact,
+			});
+			score += impact;
+		}
+
+		return score;
+	}
+
 	private clampScore(score: number): number {
 		return Math.max(0, Math.min(100, Math.round(score)));
 	}
@@ -294,7 +341,11 @@ export class TrustEngineService {
 			return `No negative trust signals found. Trust score ${assessment.score} supports ${action.toLowerCase()}.`;
 		}
 
-		return `Trust score ${assessment.score} leads to ${action.toLowerCase()} because ${strongestSignal.description}.`;
+		const signalSummary = assessment.signals
+			.map((signal) => `${signal.description} (${signal.impact >= 0 ? '+' : ''}${signal.impact})`)
+			.join('; ');
+
+		return `Trust score ${assessment.score} leads to ${action.toLowerCase()} for this customer based on: ${signalSummary}.`;
 	}
 
 	private buildSummary(score: number, signals: TrustRiskSignal[]): string {
@@ -302,7 +353,9 @@ export class TrustEngineService {
 			return `Trust score ${score}: no notable trust signals found.`;
 		}
 
-		const strongestSignal = [...signals].sort((leftSignal, rightSignal) => Math.abs(rightSignal.impact) - Math.abs(leftSignal.impact))[0];
-		return `Trust score ${score}: ${strongestSignal.description}`;
+		const signalSummary = signals
+			.map((signal) => `${signal.description} (${signal.impact >= 0 ? '+' : ''}${signal.impact})`)
+			.join('; ');
+		return `Trust score ${score}: ${signalSummary}`;
 	}
 }

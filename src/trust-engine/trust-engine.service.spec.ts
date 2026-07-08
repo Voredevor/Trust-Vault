@@ -29,6 +29,9 @@ describe('TrustEngineService', () => {
   virtualAccount: {
     findMany: jest.fn(),
   },
+  auditLog: {
+    findMany: jest.fn(),
+  },
   };
 
   beforeEach(async () => {
@@ -48,6 +51,7 @@ describe('TrustEngineService', () => {
   prismaService.device.findMany.mockResolvedValue([]);
   prismaService.transaction.findMany.mockResolvedValue([]);
   prismaService.virtualAccount.findMany.mockResolvedValue([]);
+  prismaService.auditLog.findMany.mockResolvedValue([]);
   });
 
   it('should be defined', () => {
@@ -59,9 +63,18 @@ describe('TrustEngineService', () => {
 
     expect(result).toMatchObject({
       userId: 'user-id',
-      score: 100,
+      score: 85,
       riskLevel: 'LOW',
     });
+    expect(prismaService.transaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'user-id' } }),
+    );
+    expect(prismaService.virtualAccount.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'user-id' } }),
+    );
+    expect(prismaService.auditLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'user-id' } }),
+    );
   });
 
   it('returns a trust decision for a known user', async () => {
@@ -71,7 +84,7 @@ describe('TrustEngineService', () => {
       userId: 'user-id',
       action: 'ALLOW',
       assessment: {
-        score: 100,
+        score: 85,
         riskLevel: 'LOW',
       },
     });
@@ -91,12 +104,16 @@ describe('TrustEngineService', () => {
     prismaService.virtualAccount.findMany.mockResolvedValueOnce([
       { status: 'INACTIVE' },
     ]);
+    prismaService.auditLog.findMany.mockResolvedValueOnce([
+      { action: 'WEBHOOK_RECEIVED', severity: 'HIGH', createdAt: new Date() },
+    ]);
 
     const result = await service.decideUserTrust('user-id');
 
-    expect(result.action).toBe('STEP_UP');
+    expect(result.action).toBe('BLOCK');
     expect(result.assessment.score).toBeLessThan(85);
     expect(result.assessment.signals.length).toBeGreaterThan(0);
+    expect(result.reason).toContain('based on');
   });
 
   it('throws for an unknown user', async () => {

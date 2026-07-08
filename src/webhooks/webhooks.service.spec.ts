@@ -34,6 +34,7 @@ describe('WebhooksService', () => {
     },
     auditLog: {
       create: jest.fn(),
+      update: jest.fn(),
     },
     transaction: {
       findFirst: jest.fn(),
@@ -41,6 +42,9 @@ describe('WebhooksService', () => {
     },
     virtualAccount: {
       findFirst: jest.fn(),
+    },
+    user: {
+      findUnique: jest.fn(),
     },
   };
 
@@ -136,7 +140,9 @@ describe('WebhooksService', () => {
     prismaService.webhookEvent.update.mockResolvedValue({ id: 'event-id' });
     prismaService.webhookEvent.findUniqueOrThrow.mockResolvedValue({ id: 'event-id' });
     prismaService.auditLog.create.mockResolvedValue({ id: 'audit-log-id' });
+    prismaService.auditLog.update.mockResolvedValue({ id: 'audit-log-id' });
     prismaService.transaction.findFirst.mockResolvedValue(null);
+    prismaService.user.findUnique.mockResolvedValue({ id: 'user-id' });
   });
 
   it('should be defined', () => {
@@ -282,18 +288,13 @@ describe('WebhooksService', () => {
   it('creates a transaction and audit log when a webhook matches a virtual account', async () => {
     const payload = {
       ...createNombaPayload(),
-      event: 'payment.received',
-      amount: '1250',
-      currency: 'NGN',
-      reference: 'txn_1250',
-      accountReference: 'account-ref',
     };
     const rawBody = Buffer.from(JSON.stringify(payload));
     const signature = signNombaPayload(payload);
 
     prismaService.virtualAccount.findFirst.mockResolvedValue({
       id: 'virtual-account-id',
-      userId: null,
+      userId: 'user-id',
     });
     prismaService.transaction.upsert.mockResolvedValue({
       id: 'transaction-id',
@@ -317,15 +318,39 @@ describe('WebhooksService', () => {
 
     expect(prismaService.virtualAccount.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [{ providerReference: 'account-ref' }],
+        OR: [
+          { providerReference: 'sampleAccountReference' },
+          { accountNumber: '5343270516' },
+        ],
       },
     });
-    expect(prismaService.transaction.upsert).toHaveBeenCalled();
+    expect(prismaService.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 'user-id' },
+      select: { id: true },
+    });
+    expect(prismaService.transaction.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          userId: 'user-id',
+          virtualAccountId: 'virtual-account-id',
+          amount: '10.00',
+          narration: 'John Doe Transfer 10.00 To SAMPLE/JOHN DOE - Nomba',
+        }),
+      }),
+    );
     expect(prismaService.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           action: 'WEBHOOK_RECEIVED',
           resourceType: 'WebhookEvent',
+        }),
+      }),
+    );
+    expect(prismaService.auditLog.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'audit-log-id' },
+        data: expect.objectContaining({
+          userId: 'user-id',
         }),
       }),
     );
