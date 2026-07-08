@@ -153,6 +153,48 @@ describe('WebhooksService', () => {
     });
   });
 
+  it('preserves Base64 signature padding during verification', async () => {
+    const payload = { event: 'payment.received', amount: '1000' };
+    const rawBody = Buffer.from(JSON.stringify(payload));
+    const signature = createHmac('sha256', webhookSecret)
+      .update(rawBody)
+      .digest('base64');
+
+    expect(signature.endsWith('=')).toBe(true);
+
+    await expect(
+      service.ingestNombaWebhook(
+        {
+          'nomba-signature': signature,
+        },
+        payload,
+        rawBody,
+      ),
+    ).resolves.toMatchObject({
+      received: true,
+      verified: true,
+    });
+  });
+
+  it('only strips an explicit sha256 signature prefix', async () => {
+    const payload = { event: 'payment.received', amount: '1000' };
+    const rawBody = Buffer.from(JSON.stringify(payload));
+    const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+
+    await expect(
+      service.ingestNombaWebhook(
+        {
+          'nomba-signature': `sha256=${signature}`,
+        },
+        payload,
+        rawBody,
+      ),
+    ).resolves.toMatchObject({
+      received: true,
+      verified: true,
+    });
+  });
+
   it('treats incoming signature header names as lowercase-insensitive', async () => {
     const payload = { event: 'payment.received', amount: '1000' };
     const rawBody = Buffer.from(JSON.stringify(payload));

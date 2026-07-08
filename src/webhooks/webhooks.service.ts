@@ -433,11 +433,23 @@ export class WebhooksService {
 
   private verifySignature(body: Buffer, signature: string, secret: string): boolean {
     const normalizedSignature = signature.trim();
-    const signatureValue = normalizedSignature.includes('=')
-      ? normalizedSignature.split('=', 2)[1]
+    const signaturePrefix = 'sha256=';
+    const signatureValue = normalizedSignature
+      .toLowerCase()
+      .startsWith(signaturePrefix)
+      ? normalizedSignature.slice(signaturePrefix.length)
       : normalizedSignature;
     const expectedHex = createHmac('sha256', secret).update(body).digest('hex');
     const expectedBase64 = createHmac('sha256', secret).update(body).digest('base64');
+
+    this.logger.log({
+      stage: 'Signature extraction',
+      originalHeaderValue: normalizedSignature,
+      extractedSignature: signatureValue,
+      extractedSignatureLength: signatureValue.length,
+      expectedBase64Length: expectedBase64.length,
+      expectedHexLength: expectedHex.length,
+    });
 
     return (
       this.safeCompare(signatureValue.toLowerCase(), expectedHex) ||
