@@ -118,6 +118,60 @@ describe('WebhooksService', () => {
   );
   });
 
+  it('accepts Nomba signature value headers from Render webhook requests', async () => {
+    const payload = { event: 'payment.received', amount: '1000' };
+    const rawBody = Buffer.from(JSON.stringify(payload));
+    const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+
+    await expect(
+      service.ingestNombaWebhook(
+        {
+          'nomba-signature': 'signature-metadata',
+          'nomba-signature-algorithm': 'HMAC-SHA256',
+          'nomba-signature-version': '1',
+          'nomba-sig-value': signature,
+        },
+        payload,
+        rawBody,
+      ),
+    ).resolves.toMatchObject({
+      received: true,
+      verified: true,
+    });
+
+    await expect(service.debug()).resolves.toMatchObject({
+      lastSignatureVerificationResult: 'passed',
+      lastWebhookAttempt: {
+        signatureHeaderExpected: expect.arrayContaining([
+          'nomba-sig-value',
+          'nomba-signature',
+        ]),
+        signatureHeaderName: 'nomba-sig-value',
+        signatureHeaderExists: true,
+        signatureValueLength: signature.length,
+      },
+    });
+  });
+
+  it('treats incoming signature header names as lowercase-insensitive', async () => {
+    const payload = { event: 'payment.received', amount: '1000' };
+    const rawBody = Buffer.from(JSON.stringify(payload));
+    const signature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+
+    await expect(
+      service.ingestNombaWebhook(
+        {
+          'Nomba-Sig-Value': signature,
+        },
+        payload,
+        rawBody,
+      ),
+    ).resolves.toMatchObject({
+      received: true,
+      verified: true,
+    });
+  });
+
   it('creates a transaction and audit log when a webhook matches a virtual account', async () => {
     const payload = {
       event: 'payment.received',
@@ -187,6 +241,9 @@ describe('WebhooksService', () => {
   });
 
   it('returns temporary webhook debug information', async () => {
+    prismaService.webhookEvent.count.mockClear();
+    prismaService.webhookEvent.findFirst.mockClear();
+
     await expect(service.debug()).resolves.toMatchObject({
       totalWebhookEvents: 1,
       lastSignatureVerificationResult: null,

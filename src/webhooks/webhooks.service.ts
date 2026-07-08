@@ -14,8 +14,10 @@ type SignatureVerificationResult =
 interface LastWebhookDebugState {
   timestamp: string;
   headers: Record<string, string>;
+  signatureHeaderExpected?: string[];
   signatureHeaderName?: string;
   signatureHeaderExists: boolean;
+  signatureValueLength?: number;
   signatureVerificationResult: SignatureVerificationResult;
   payload?: unknown;
   accountNumber?: string;
@@ -79,19 +81,38 @@ export class WebhooksService {
     }
 
     const signatureHeaderNames = [
+      'nomba-signature',
+      'nomba-sig-value',
       'x-nomba-signature',
       'x-webhook-signature',
       'x-signature',
     ];
-    const signatureHeaderName = this.findHeaderName(headers, signatureHeaderNames);
-    const signature = signatureHeaderName ? this.readHeader(headers, [signatureHeaderName]) : undefined;
+    const signatureCandidates = signatureHeaderNames
+      .map((name) => ({
+        name,
+        value: this.readHeader(headers, [name]),
+      }))
+      .filter((candidate): candidate is { name: string; value: string } =>
+        Boolean(candidate.value),
+      );
+    let signatureHeaderName = signatureCandidates[0]?.name;
+    let signature = signatureCandidates[0]?.value;
     const signatureHeaderExists = Boolean(signature);
+    const signatureValueLength = signature?.length ?? 0;
+    this.lastWebhookDebugState.signatureHeaderExpected = signatureHeaderNames;
     this.lastWebhookDebugState.signatureHeaderName = signatureHeaderName;
     this.lastWebhookDebugState.signatureHeaderExists = signatureHeaderExists;
+    this.lastWebhookDebugState.signatureValueLength = signatureValueLength;
     this.logger.log({
       stage: 'Signature header exists',
       exists: signatureHeaderExists,
       headerName: signatureHeaderName,
+    });
+    this.logger.log({
+      stage: 'Signature header detection',
+      headerExpected: signatureHeaderNames,
+      headerFound: signatureHeaderName ?? null,
+      signatureValueLength,
     });
 
     if (!signature) {
@@ -110,10 +131,25 @@ export class WebhooksService {
     }
 
     const body = rawBody ?? Buffer.from(JSON.stringify(payload ?? {}));
-    const signatureVerificationPassed = this.verifySignature(body, signature, webhookSecret);
+    const verifiedSignatureCandidate = signatureCandidates.find((candidate) =>
+      this.verifySignature(body, candidate.value, webhookSecret),
+    );
+    if (verifiedSignatureCandidate) {
+      signatureHeaderName = verifiedSignatureCandidate.name;
+      signature = verifiedSignatureCandidate.value;
+      this.lastWebhookDebugState.signatureHeaderName = signatureHeaderName;
+      this.lastWebhookDebugState.signatureValueLength = signature.length;
+    }
+    const signatureVerificationPassed = Boolean(verifiedSignatureCandidate);
     this.lastWebhookDebugState.signatureVerificationResult = signatureVerificationPassed
       ? 'passed'
       : 'failed';
+    this.logger.log({
+      stage: 'Signature header selected',
+      headerExpected: signatureHeaderNames,
+      headerFound: signatureHeaderName ?? null,
+      signatureValueLength: signature?.length ?? 0,
+    });
     this.logger.log({
       stage: signatureVerificationPassed
         ? 'Signature verification passed'
@@ -421,13 +457,11 @@ export class WebhooksService {
   }
 
   private readHeader(headers: IncomingHttpHeaders, names: string[]): string | undefined {
-    for (const name of names) {
-      const value = headers[name];
-      if (Array.isArray(value)) {
-        return value[0];
-      }
+    const normalizedHeaders = this.normalizeHeaders(headers);
 
-      if (typeof value === 'string') {
+    for (const name of names) {
+      const value = normalizedHeaders[name.toLowerCase()];
+      if (value) {
         return value;
       }
     }
@@ -437,13 +471,13 @@ export class WebhooksService {
 
   private findHeaderName(headers: IncomingHttpHeaders, names: string[]): string | undefined {
     const lowerCaseHeaderNames = new Set(Object.keys(headers).map((key) => key.toLowerCase()));
-    return names.find((name) => lowerCaseHeaderNames.has(name));
+    return names.find((name) => lowerCaseHeaderNames.has(name.toLowerCase()));
   }
 
   private normalizeHeaders(headers: IncomingHttpHeaders): Record<string, string> {
     return Object.fromEntries(
       Object.entries(headers).map(([key, value]) => [
-        key,
+        key.toLowerCase(),
         Array.isArray(value) ? value.join(',') : value ?? '',
       ]),
     );
