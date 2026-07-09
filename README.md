@@ -267,7 +267,7 @@ Screenshots should be added after the UI is stable.
 
 ## Author
 
-Built by the TrustVault developer.
+Built by the Olorunfemi Devor and Abiodun Atunwa.
 
 GitHub: project repository.
 
