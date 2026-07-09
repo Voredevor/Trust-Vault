@@ -2061,9 +2061,9 @@ export class AppService {
       try {
         state.audit = await api('/audit');
         page.innerHTML = [
-          '<div class="card">' + sectionHead('Audit Logs', 'Timeline-first audit trail with the original table preserved below.'),
+          '<div class="card">' + sectionHead('Audit Logs', 'Filtered administrative and security-relevant events.'),
           '<div class="toolbar"><select id="auditFilter"><option value="">All</option><option value="Security">Security</option><option value="Webhook">Webhook</option><option value="Customer">Customer</option><option value="Transfer">Transfer</option><option value="System">System</option></select></div>',
-          '<div id="auditTimeline"></div><div id="auditTable" style="margin-top:14px;"></div></div>'
+          '<div id="auditTimeline"></div></div>'
         ].join('');
         document.getElementById('auditFilter').addEventListener('change', renderAuditFilter);
         renderAuditFilter();
@@ -2077,9 +2077,8 @@ export class AppService {
       const rows = filter ? state.audit.filter((log) => auditCategory(log) === filter) : state.audit;
       const timeline = document.getElementById('auditTimeline');
       if (timeline) {
-        timeline.innerHTML = auditTimeline(rows.slice(0, 8));
+        timeline.innerHTML = auditTimeline(rows);
       }
-      document.getElementById('auditTable').innerHTML = auditTable(rows);
     }
 
     function auditTimeline(rows) {
