@@ -1,130 +1,274 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# TrustVault
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+TrustVault is a payment security layer built on top of Nomba. It helps a business receive payments through dedicated virtual accounts, record what happened, and check outgoing transfers before money leaves an account.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## The Problem
 
-## TrustVault
+Receiving payments is usually straightforward. A customer pays into an account, the provider sends a webhook, and the business records the payment.
 
-TrustVault is a backend-first trust and payment security layer built on top of Nomba Dedicated Virtual Account APIs. The root route now serves an embedded dashboard shell for the completed Phase 7 frontend work.
+Sending money safely is harder. Fraud happens. Human error happens. A real customer can suddenly behave in a risky way. A transfer can go to the wrong account. Operators need a way to slow down risky transfers without blocking every payment by default.
 
-## View The Frontend
+TrustVault was built to reduce that risk.
 
-Run the app in development mode and open the root route in your browser:
+## The Solution
+
+TrustVault sits between a business and Nomba. It keeps its own record of customers, virtual accounts, transactions, webhooks, and audit logs. Before an outgoing transfer happens, TrustVault can:
+
+- check the customer's trust score
+- look at payment and account history
+- review the transfer amount and recipient
+- recommend whether to allow, review, or block the payment
+- send allowed transfers to Nomba
+- log every important action
+
+## Why TrustVault?
+
+Most payment platforms focus on helping businesses move money.
+
+TrustVault focuses on helping businesses move money safely.
+
+Instead of replacing payment providers like Nomba, TrustVault sits on top of them as a security layer. Every incoming payment is verified and reconciled, while every outgoing payment can be inspected, scored, approved, or blocked before funds leave the business.
+
+The goal is simple: make payment infrastructure smarter, safer, and easier to trust.
+
+## Features
+
+- Customer management for creating, viewing, updating, archiving, and restoring customers.
+- Dedicated Virtual Accounts created through Nomba and stored locally.
+- Incoming webhook processing for Nomba payment events.
+- Webhook signature verification using the raw request body.
+- Transaction recording for incoming payments and outgoing transfers.
+- Audit logs for security and operational events.
+- Trust Engine for customer scoring and transfer decisions.
+- Transfer Guard for checking outgoing transfers before execution.
+- Risk dashboard and security overview for operators.
+- Embedded admin dashboard served from the NestJS app root route.
+
+## Dashboard Tour
+
+### Dashboard
+
+The dashboard gives a quick view of payment activity, recent transactions, webhook events, audit signals, and transfer risk. It is meant to help an operator understand what is happening without opening every API response by hand.
+
+### Customers
+
+The Customers screen lists active and archived customers. Selecting a customer opens a profile panel with their identity, virtual accounts, devices, beneficiaries, and recent transactions.
+
+### Virtual Accounts
+
+This screen manages Nomba-backed dedicated virtual accounts. Operators can create accounts, look them up, rename them locally, suspend them, close them, archive them, or inspect the raw account data.
+
+### Transactions
+
+The Transactions screen shows incoming and outgoing payments. Operators can filter by direction, status, date, and customer, then open a transaction to inspect the full payload.
+
+### Transfer Guard
+
+Transfer Guard is the main safety flow for outgoing money. The operator enters the customer, recipient, bank details, and amount. TrustVault checks the customer and transfer risk, then returns a decision.
+
+### Security Overview
+
+The Security Overview screen collects trust scores, alerts, payment volume, risk decisions, webhook activity, and recent transfers in one place.
+
+### Webhooks
+
+The Webhooks screen shows signed Nomba events received by TrustVault. Each row can expand to show the payload, headers, matching result, and processing status.
+
+### Trust Engine
+
+The Trust Engine screen lets an operator inspect a customer's score, risk level, decision, metrics, and risk factors.
+
+### Audit Logs
+
+Audit Logs show the security trail. The page includes a timeline view and the original table view so operators can scan recent events or inspect structured records.
+
+### Settings
+
+Settings shows connection status, webhook configuration, deployment environment, and the webhook endpoint for the current host.
+
+## How It Works
+
+```text
+Customer
+  ↓
+Virtual Account
+  ↓
+Money enters account
+  ↓
+Nomba fires webhook
+  ↓
+Webhook is verified
+  ↓
+Transaction is created
+  ↓
+Audit log is created
+  ↓
+Trust Engine has more history to score with
+  ↓
+Dashboard refreshes from the API
+```
+
+For outgoing transfers, the flow is:
+
+```text
+Operator enters transfer details
+  ↓
+TrustVault checks the customer
+  ↓
+TrustVault checks recipient and transfer risk
+  ↓
+Transfer Guard returns ALLOW, REVIEW, or BLOCK
+  ↓
+Allowed transfers are sent to Nomba
+  ↓
+The decision is written to audit logs
+```
+
+## Technology Stack
+
+- NestJS
+- TypeScript
+- Prisma
+- PostgreSQL
+- Nomba APIs
+- JWT support
+- Swagger support
+- Render
+
+## Running Locally
+
+1. Clone the repository.
+
+```bash
+git clone <repo-url>
+cd trustvault-api
+```
+
+2. Install dependencies.
+
+```bash
+npm install
+```
+
+3. Create a `.env` file.
+
+```env
+DATABASE_URL="postgresql://user:password@host:5432/database"
+NOMBA_BASE_URL="https://api.nomba.com"
+NOMBA_PARENT_ACCOUNT_ID="your-parent-account-id"
+NOMBA_SUB_ACCOUNT_ID="your-sub-account-id"
+NOMBA_CLIENT_ID="your-client-id"
+NOMBA_PRIVATE_KEY="your-private-key"
+NOMBA_WEBHOOK_SECRET="your-webhook-secret"
+PORT=3000
+```
+
+4. Generate the Prisma client.
+
+```bash
+npm run prisma:generate
+```
+
+5. Run database migrations.
+
+```bash
+npx prisma migrate deploy
+```
+
+6. Start the server.
 
 ```bash
 npm run dev
 ```
 
-Then visit http://localhost:3000/ to see the TrustVault dashboard shell.
+7. Open the dashboard.
 
-The dashboard includes trust-score controls, virtual-account panels, webhook event views, live snapshot cards, and an operator refresh rail.
+```text
+http://localhost:3000
+```
 
-This repository already contains the backend. The NestJS app serves both the API and the embedded frontend shell from the same process, so you do not need to start a separate frontend server.
-
-## Troubleshooting
-
-If the app fails with `EADDRINUSE: address already in use :::3000`, another process is already using port 3000. Stop the old process or start TrustVault on a different port.
-
-Examples:
+If port 3000 is already in use, start on another port:
 
 ```bash
 PORT=3001 npm run dev
 ```
 
+PowerShell:
+
 ```powershell
 $env:PORT=3001; npm run dev
 ```
 
-## Description
+## Environment Variables
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Variable | What it does | Why it exists |
+| --- | --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string used by Prisma. | TrustVault stores customers, accounts, transactions, webhooks, and audit logs in Postgres. |
+| `NOMBA_BASE_URL` | Nomba API base URL. Defaults to `https://api.nomba.com` if not set. | Lets local or sandbox environments point to a different Nomba host. |
+| `NOMBA_PARENT_ACCOUNT_ID` | Parent account ID sent to Nomba. | Nomba uses it to scope authenticated requests. |
+| `NOMBA_SUB_ACCOUNT_ID` | Sub-account ID used when creating virtual accounts. | Dedicated virtual accounts are created under this account. |
+| `NOMBA_CLIENT_ID` | Nomba OAuth client ID. | Used to request an access token. |
+| `NOMBA_PRIVATE_KEY` | Nomba OAuth private key or secret used by the current integration. | Used to authenticate with Nomba. |
+| `NOMBA_WEBHOOK_SECRET` | Secret used to verify webhook signatures. | Prevents unsigned or tampered webhook payloads from being trusted. |
+| `PORT` | Server port. Defaults to `3000`. | Useful when running more than one local server. |
 
-## Project setup
+## Folder Structure
 
-```bash
-$ yarn install
+```text
+src/
+  app.service.ts          Embedded dashboard HTML, CSS, and browser-side JS
+  dashboard/              Summary endpoint used by the dashboard
+  users/                  Customer management
+  virtual-accounts/       Nomba virtual account workflows and local account state
+  transactions/           Incoming and outgoing payment records
+  transfers/              Transfer Guard and outgoing transfer flow
+  trust-engine/           Customer scoring and decision logic
+  webhooks/               Nomba webhook receiver and event records
+  audit/                  Audit log API and persistence
+  nomba/                  Nomba API wrapper
+  prisma/                 PrismaService database boundary
+prisma/
+  schema.prisma           Database schema
+  migrations/             Database migrations
+docs/
+  *.md                    Project documentation
 ```
 
-## Compile and run the project
+## Screenshots
 
-```bash
-# development
-$ yarn run start
+Screenshots should be added after the UI is stable.
 
-# watch mode
-$ yarn run start:dev
+- `[Screenshot: Dashboard overview]`
+- `[Screenshot: Transfer Guard decision]`
+- `[Screenshot: Webhook event details]`
+- `[Screenshot: Customer profile]`
+- `[Screenshot: Security overview]`
 
-# production mode
-$ yarn run start:prod
-```
+## Documentation
 
-## Run tests
+- [Architecture](docs/Architecture.md)
+- [API](docs/API.md)
+- [Webhook Setup](docs/Webhook_Setup.md)
+- [Transfer Guard](docs/Transfer_Guard.md)
+- [Trust Engine](docs/Trust_Engine.md)
+- [Product Vision](docs/Product_Vision.md)
+- [Roadmap](docs/Roadmap.md)
+- [Testing](docs/Testing.md)
 
-```bash
-# unit tests
-$ yarn run test
+## Future Improvements
 
-# e2e tests
-$ yarn run test:e2e
+- Device fingerprinting
+- AI-assisted fraud detection
+- Multi-factor approval for risky transfers
+- Live notifications for operators
+- Behaviour analytics
+- Admin roles and permissions
+- Real-time dashboard updates
 
-# test coverage
-$ yarn run test:cov
-```
+## Author
 
-## Deployment
+Built by the TrustVault developer.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+GitHub: project repository.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project started as a backend-first fintech security layer and grew into a working API with an embedded operator dashboard.
